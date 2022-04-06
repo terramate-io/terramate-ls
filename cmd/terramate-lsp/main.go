@@ -43,7 +43,7 @@ func main() {
 
 	// TODO(i4k): implement other modes.
 	if *mode != "stdio" {
-		fmt.Println("We only support stdio mode")
+		fmt.Println("terramate-lsp only support stdio mode")
 		os.Exit(0)
 	}
 

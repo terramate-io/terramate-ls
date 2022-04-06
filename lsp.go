@@ -49,15 +49,12 @@ func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2
 	default:
 		log.Printf("%s is not implemented", r.Method())
 	case lsp.MethodInitialize:
-		// Get params.
 		var params InitializeParams
 		if err := json.Unmarshal(r.Params(), &params); err != nil {
 			log.Fatal(err)
 		}
 
 		s.workspace = string(uri.New(params.RootURI).Filename())
-
-		// Send back the response.
 		err := reply(ctx, lsp.InitializeResult{
 			Capabilities: lsp.ServerCapabilities{
 				CompletionProvider: &lsp.CompletionOptions{},
