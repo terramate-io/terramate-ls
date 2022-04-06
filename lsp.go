@@ -65,7 +65,6 @@ func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2
 				HoverProvider: false,
 
 				TextDocumentSync: lsp.TextDocumentSyncOptions{
-
 					// Send all file content on every change (can be optimized later).
 					Change: lsp.TextDocumentSyncKindFull,
 
