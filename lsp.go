@@ -30,8 +30,7 @@ type Server struct {
 	workspace string
 }
 
-// InitializeParams
-type InitializeParams struct {
+type initParams struct {
 	ProcessID int    `json:"processId,omitempty"`
 	RootURI   string `json:"rootUri,omitempty"`
 }
@@ -49,7 +48,7 @@ func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2
 	default:
 		log.Printf("%s is not implemented", r.Method())
 	case lsp.MethodInitialize:
-		var params InitializeParams
+		var params initParams
 		if err := json.Unmarshal(r.Params(), &params); err != nil {
 			log.Fatal(err)
 		}
