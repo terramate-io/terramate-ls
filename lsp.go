@@ -81,15 +81,18 @@ func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2
 
 		if err != nil {
 			log.Fatal(err)
-			panic(err)
 		}
 
 		log.Printf("client connected using workspace %q", s.workspace)
 
-		s.conn.Notify(ctx, lsp.MethodWindowShowMessage, lsp.ShowMessageParams{
+		err = s.conn.Notify(ctx, lsp.MethodWindowShowMessage, lsp.ShowMessageParams{
 			Message: "connected to terramate-lsp",
 			Type:    lsp.MessageTypeInfo,
 		})
+
+		if err != nil {
+			log.Printf("error: failed to notify client")
+		}
 
 		return nil
 
