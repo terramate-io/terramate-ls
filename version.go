@@ -22,7 +22,7 @@ import (
 //go:embed VERSION
 var version string
 
-// Version of terramate.
+// Version of Terramate LSP Server.
 func Version() string {
 	return strings.TrimSpace(version)
 }
