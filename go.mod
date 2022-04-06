@@ -1,6 +1,6 @@
 module github.com/mineiros-io/terramate-lsp
 
-go 1.18
+go 1.17
 
 require (
 	go.lsp.dev/jsonrpc2 v0.10.0
