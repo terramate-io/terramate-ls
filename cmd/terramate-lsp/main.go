@@ -57,8 +57,9 @@ func runServer(conn io.ReadWriteCloser) {
 	log.Printf("Starting Terramate Language Server in %s mode ...", *mode)
 
 	rpcConn := jsonrpc2.NewConn(jsonrpc2.NewStream(conn))
+	server := tmlsp.NewServer(rpcConn)
 
-	rpcConn.Go(ctx, tmlsp.Handler(rpcConn))
+	rpcConn.Go(ctx, server.Handler)
 	<-rpcConn.Done()
 }
 

@@ -24,72 +24,80 @@ import (
 	"go.lsp.dev/uri"
 )
 
+type Server struct {
+	conn jsonrpc2.Conn
+
+	workspace string
+}
+
 // InitializeParams
 type InitializeParams struct {
 	ProcessID int    `json:"processId,omitempty"`
 	RootURI   string `json:"rootUri,omitempty"`
 }
 
-// Deliver ...
-func Handler(conn jsonrpc2.Conn) jsonrpc2.Handler {
-	var workspace string
+func NewServer(conn jsonrpc2.Conn) *Server {
+	return &Server{
+		conn: conn,
+	}
+}
 
-	return func(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
-		log.Printf("got request %s with params: %s", r.Method(), r.Params())
-		switch r.Method() {
-		default:
-			log.Printf("%s is not implemented", r.Method())
-		case lsp.MethodInitialize:
-			// Get params.
-			var params InitializeParams
-			if err := json.Unmarshal(r.Params(), &params); err != nil {
-				log.Fatal(err)
-			}
-
-			workspace = string(uri.New(params.RootURI).Filename())
-
-			// Send back the response.
-			err := reply(ctx, lsp.InitializeResult{
-				Capabilities: lsp.ServerCapabilities{
-					CompletionProvider: &lsp.CompletionOptions{},
-
-					// if we support `goto` definition.
-					DefinitionProvider: false,
-
-					// If we support `hover` info.
-					HoverProvider: false,
-
-					TextDocumentSync: lsp.TextDocumentSyncOptions{
-
-						// Send all file content on every change (can be optimized later).
-						Change: lsp.TextDocumentSyncKindFull,
-
-						// if we want to be notified about open/close of Terramate files.
-						OpenClose: true,
-						Save: &lsp.SaveOptions{
-							// If we want the file content on save,
-							IncludeText: false,
-						},
-					},
-				},
-			}, nil)
-
-			if err != nil {
-				log.Fatal(err)
-				panic(err)
-			}
-
-			log.Printf("client connected using workspace %q", workspace)
-
-			conn.Notify(ctx, lsp.MethodWindowShowMessage, lsp.ShowMessageParams{
-				Message: "connected to terramate-lsp",
-				Type:    lsp.MessageTypeInfo,
-			})
-
-			return nil
-
+// Handler handles the client requests.
+func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
+	log.Printf("got request %s with params: %s", r.Method(), r.Params())
+	switch r.Method() {
+	default:
+		log.Printf("%s is not implemented", r.Method())
+	case lsp.MethodInitialize:
+		// Get params.
+		var params InitializeParams
+		if err := json.Unmarshal(r.Params(), &params); err != nil {
+			log.Fatal(err)
 		}
 
+		s.workspace = string(uri.New(params.RootURI).Filename())
+
+		// Send back the response.
+		err := reply(ctx, lsp.InitializeResult{
+			Capabilities: lsp.ServerCapabilities{
+				CompletionProvider: &lsp.CompletionOptions{},
+
+				// if we support `goto` definition.
+				DefinitionProvider: false,
+
+				// If we support `hover` info.
+				HoverProvider: false,
+
+				TextDocumentSync: lsp.TextDocumentSyncOptions{
+
+					// Send all file content on every change (can be optimized later).
+					Change: lsp.TextDocumentSyncKindFull,
+
+					// if we want to be notified about open/close of Terramate files.
+					OpenClose: true,
+					Save: &lsp.SaveOptions{
+						// If we want the file content on save,
+						IncludeText: false,
+					},
+				},
+			},
+		}, nil)
+
+		if err != nil {
+			log.Fatal(err)
+			panic(err)
+		}
+
+		log.Printf("client connected using workspace %q", s.workspace)
+
+		s.conn.Notify(ctx, lsp.MethodWindowShowMessage, lsp.ShowMessageParams{
+			Message: "connected to terramate-lsp",
+			Type:    lsp.MessageTypeInfo,
+		})
+
 		return nil
+
 	}
+
+	return nil
 }
