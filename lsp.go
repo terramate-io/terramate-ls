@@ -25,8 +25,7 @@ import (
 )
 
 type Server struct {
-	conn jsonrpc2.Conn
-
+	conn      jsonrpc2.Conn
 	workspace string
 }
 
