@@ -29,20 +29,20 @@ import (
 )
 
 var (
-	mode    = flag.String("mode", "stdio", "communication mode (stdio|tcp|websocket)")
-	version = flag.Bool("version", false, "print version and exit")
+	modeFlag    = flag.String("mode", "stdio", "communication mode (stdio|tcp|websocket)")
+	versionFlag = flag.Bool("version", false, "print version and exit")
 )
 
 func main() {
 	flag.Parse()
 
-	if *version {
+	if *versionFlag {
 		fmt.Println(tmlsp.Version())
 		os.Exit(0)
 	}
 
 	// TODO(i4k): implement other modes.
-	if *mode != "stdio" {
+	if *modeFlag != "stdio" {
 		fmt.Println("terramate-lsp only supports stdio mode")
 		os.Exit(0)
 	}
@@ -54,7 +54,7 @@ func runServer(conn io.ReadWriteCloser) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill, syscall.SIGTERM)
 	defer stop()
 
-	log.Printf("Starting Terramate Language Server in %s mode ...", *mode)
+	log.Printf("Starting Terramate Language Server in %s mode ...", *modeFlag)
 
 	rpcConn := jsonrpc2.NewConn(jsonrpc2.NewStream(conn))
 	server := tmlsp.NewServer(rpcConn)
