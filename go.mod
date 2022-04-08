@@ -10,6 +10,7 @@ require (
 
 require (
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/rs/zerolog v1.26.1 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.3.4 // indirect
 	go.lsp.dev/pkg v0.0.0-20210717090340-384b27a52fb2 // indirect

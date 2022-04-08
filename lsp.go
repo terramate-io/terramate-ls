@@ -17,83 +17,132 @@ package tmlsp
 import (
 	"context"
 	"encoding/json"
-	"log"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"go.lsp.dev/jsonrpc2"
 	lsp "go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
 
+// Server is the Language Server.
 type Server struct {
 	conn      jsonrpc2.Conn
 	workspace string
+	handlers  handlers
+
+	log zerolog.Logger
 }
 
-type initParams struct {
-	ProcessID int    `json:"processId,omitempty"`
-	RootURI   string `json:"rootUri,omitempty"`
-}
+// handler is a jsonrpc2.Handler with a custom logger.
+type handler = func(
+	l zerolog.Logger,
+	ctx context.Context,
+	reply jsonrpc2.Replier,
+	req jsonrpc2.Request,
+) error
 
+type handlers map[string]handler
+
+// NewServer creates a new language server.
 func NewServer(conn jsonrpc2.Conn) *Server {
-	return &Server{
+	s := &Server{
 		conn: conn,
+		log:  log.Logger, // by default uses global Logger
+	}
+	s.buildHandlers()
+	return s
+}
+
+// ServerWithLogger creates a new language server with a custom logger.
+func ServerWithLogger(conn jsonrpc2.Conn, l zerolog.Logger) *Server {
+	s := &Server{
+		conn: conn,
+		log:  l,
+	}
+	s.buildHandlers()
+	return s
+}
+
+func (s *Server) buildHandlers() {
+	s.handlers = map[string]handler{
+		lsp.MethodInitialize: s.handleInitialize,
 	}
 }
 
 // Handler handles the client requests.
 func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
-	log.Printf("got request %s with params: %s", r.Method(), r.Params())
-	switch r.Method() {
-	default:
-		log.Printf("%s is not implemented", r.Method())
-	case lsp.MethodInitialize:
-		var params initParams
-		if err := json.Unmarshal(r.Params(), &params); err != nil {
-			log.Fatal(err)
-		}
+	logger := s.log.With().
+		Str("action", "server.Handler()").
+		Str("method", r.Method()).
+		Logger()
 
-		s.workspace = string(uri.New(params.RootURI).Filename())
-		err := reply(ctx, lsp.InitializeResult{
-			Capabilities: lsp.ServerCapabilities{
-				CompletionProvider: &lsp.CompletionOptions{},
+	logger.Debug().
+		RawJSON("params", r.Params()).
+		Msg("handling request.")
 
-				// if we support `goto` definition.
-				DefinitionProvider: false,
+	if handler, ok := s.handlers[r.Method()]; ok {
+		return handler(logger, ctx, reply, r)
+	}
 
-				// If we support `hover` info.
-				HoverProvider: false,
+	logger.Trace().Msg("not implemented")
+	return nil
+}
 
-				TextDocumentSync: lsp.TextDocumentSyncOptions{
-					// Send all file content on every change (can be optimized later).
-					Change: lsp.TextDocumentSyncKindFull,
+func (s *Server) handleInitialize(
+	log zerolog.Logger,
+	ctx context.Context,
+	reply jsonrpc2.Replier,
+	r jsonrpc2.Request,
+) error {
+	type initParams struct {
+		ProcessID int    `json:"processId,omitempty"`
+		RootURI   string `json:"rootUri,omitempty"`
+	}
 
-					// if we want to be notified about open/close of Terramate files.
-					OpenClose: true,
-					Save: &lsp.SaveOptions{
-						// If we want the file content on save,
-						IncludeText: false,
-					},
+	var params initParams
+	if err := json.Unmarshal(r.Params(), &params); err != nil {
+		log.Fatal().Err(err).Msg("failed to unmarshal params")
+	}
+
+	s.workspace = string(uri.New(params.RootURI).Filename())
+	err := reply(ctx, lsp.InitializeResult{
+		Capabilities: lsp.ServerCapabilities{
+			CompletionProvider: &lsp.CompletionOptions{},
+
+			// if we support `goto` definition.
+			DefinitionProvider: false,
+
+			// If we support `hover` info.
+			HoverProvider: false,
+
+			TextDocumentSync: lsp.TextDocumentSyncOptions{
+				// Send all file content on every change (can be optimized later).
+				Change: lsp.TextDocumentSyncKindFull,
+
+				// if we want to be notified about open/close of Terramate files.
+				OpenClose: true,
+				Save: &lsp.SaveOptions{
+					// If we want the file content on save,
+					IncludeText: false,
 				},
 			},
-		}, nil)
+		},
+	}, nil)
 
-		if err != nil {
-			log.Fatal(err)
-		}
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to reply")
+	}
 
-		log.Printf("client connected using workspace %q", s.workspace)
+	log.Info().Msgf("client connected using workspace %q", s.workspace)
 
-		err = s.conn.Notify(ctx, lsp.MethodWindowShowMessage, lsp.ShowMessageParams{
-			Message: "connected to terramate-lsp",
-			Type:    lsp.MessageTypeInfo,
-		})
+	err = s.conn.Notify(ctx, lsp.MethodWindowShowMessage, lsp.ShowMessageParams{
+		Message: "connected to terramate-lsp",
+		Type:    lsp.MessageTypeInfo,
+	})
 
-		if err != nil {
-			log.Printf("error: failed to notify client")
-		}
-
-		return nil
-
+	if err != nil {
+		log.Err(err).Msg("failed to notify client")
 	}
 
 	return nil
