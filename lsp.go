@@ -17,7 +17,10 @@ package tmlsp
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 
+	"github.com/mineiros-io/terramate/errors"
+	"github.com/mineiros-io/terramate/hcl"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"go.lsp.dev/jsonrpc2"
@@ -66,7 +69,8 @@ func ServerWithLogger(conn jsonrpc2.Conn, l zerolog.Logger) *Server {
 
 func (s *Server) buildHandlers() {
 	s.handlers = map[string]handler{
-		lsp.MethodInitialize: s.handleInitialize,
+		lsp.MethodInitialize:          s.handleInitialize,
+		lsp.MethodTextDocumentDidSave: s.handleDocumentSaved,
 	}
 }
 
@@ -143,6 +147,55 @@ func (s *Server) handleInitialize(
 
 	if err != nil {
 		log.Err(err).Msg("failed to notify client")
+	}
+
+	return nil
+}
+
+func (s *Server) handleDocumentSaved(
+	log zerolog.Logger,
+	ctx context.Context,
+	reply jsonrpc2.Replier,
+	r jsonrpc2.Request,
+) error {
+	type SaveParams struct {
+		TextDocument struct {
+			URI string `json:"uri"`
+		} `json:"textDocument"`
+
+		Text string `json:"text"`
+	}
+
+	var params SaveParams
+	if err := json.Unmarshal(r.Params(), &params); err != nil {
+		log.Err(err).Msg("failed to unmarshal params")
+	}
+
+	diags := []lsp.Diagnostic{}
+	_, err := hcl.ParseDir(filepath.Dir(uri.New(params.TextDocument.URI).Filename()))
+	if err != nil {
+		e, ok := err.(*errors.Error)
+		fileRange := lsp.Range{}
+
+		if ok {
+			fileRange.Start.Line = uint32(e.FileRange.Start.Line)
+			fileRange.Start.Character = uint32(e.FileRange.Start.Byte)
+			fileRange.End.Line = uint32(e.FileRange.End.Line)
+			fileRange.End.Character = uint32(e.FileRange.End.Byte)
+		}
+		diags = append(diags, lsp.Diagnostic{
+			Message: err.Error(),
+			Range:   fileRange,
+		})
+	}
+
+	err = s.conn.Notify(ctx, lsp.MethodTextDocumentPublishDiagnostics, lsp.PublishDiagnosticsParams{
+		URI:         uri.URI(params.TextDocument.URI),
+		Diagnostics: diags,
+	})
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to send diagnostics to the client.")
 	}
 
 	return nil
