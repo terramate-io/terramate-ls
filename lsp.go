@@ -49,12 +49,7 @@ type handlers map[string]handler
 
 // NewServer creates a new language server.
 func NewServer(conn jsonrpc2.Conn) *Server {
-	s := &Server{
-		conn: conn,
-		log:  log.Logger, // by default uses global Logger
-	}
-	s.buildHandlers()
-	return s
+	return ServerWithLogger(conn, log.Logger)
 }
 
 // ServerWithLogger creates a new language server with a custom logger.
@@ -78,6 +73,7 @@ func (s *Server) buildHandlers() {
 func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
 	logger := s.log.With().
 		Str("action", "server.Handler()").
+		Str("workspace", s.workspace).
 		Str("method", r.Method()).
 		Logger()
 
