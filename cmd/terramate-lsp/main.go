@@ -37,7 +37,7 @@ const (
 )
 
 var (
-	modeFlag     = flag.String("mode", "stdio", "communication mode (stdio|tcp|websocket)")
+	modeFlag     = flag.String("mode", "stdio", "communication mode (stdio)")
 	versionFlag  = flag.Bool("version", false, "print version and exit")
 	logLevelFlag = flag.String(
 		"log-level", defaultLogLevel,
