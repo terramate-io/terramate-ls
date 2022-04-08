@@ -74,12 +74,14 @@ func runServer(conn io.ReadWriteCloser) {
 		Str("action", "main.runServer()").
 		Logger()
 
-	logger.Trace().Msg("Creating context for UNIX signals.")
+	logger.Trace().Msg("Creating context for OS signals.")
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill, syscall.SIGTERM)
 	defer stop()
 
-	logger.Info().Msgf("Starting Terramate Language Server in %s mode ...", *modeFlag)
+	logger.Info().
+		Str("mode", *modeFlag).
+		Msg("Starting Terramate Language Server")
 
 	rpcConn := jsonrpc2.NewConn(jsonrpc2.NewStream(conn))
 	server := tmlsp.NewServer(rpcConn)
