@@ -172,11 +172,12 @@ func (s *Server) handleDocumentSaved(
 	}
 
 	diags := []lsp.Diagnostic{}
-	_, err := hcl.ParseDir(filepath.Dir(uri.New(params.TextDocument.URI).Filename()))
+	dir := filepath.Dir(uri.New(params.TextDocument.URI).Filename())
+	_, err := hcl.ParseDir(dir)
 	if err != nil {
-		e, ok := err.(*errors.Error)
+		log.Debug().Err(err).Str("dir", dir).Msg("failed to parse hcl directory")
 		fileRange := lsp.Range{}
-
+		e, ok := err.(*errors.Error)
 		if ok {
 			fileRange.Start.Line = uint32(e.FileRange.Start.Line)
 			fileRange.Start.Character = uint32(e.FileRange.Start.Byte)

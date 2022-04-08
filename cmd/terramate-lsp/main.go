@@ -33,7 +33,7 @@ import (
 
 const (
 	defaultLogLevel = "info"
-	defaultLogFmt   = "console"
+	defaultLogFmt   = "text"
 )
 
 var (
