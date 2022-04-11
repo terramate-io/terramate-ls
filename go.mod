@@ -3,7 +3,7 @@ module github.com/mineiros-io/terramate-lsp
 go 1.17
 
 require (
-	github.com/mineiros-io/terramate i4k-improve-error-handling
+	github.com/mineiros-io/terramate v0.0.12-0.20220411022201-2b921ea2cdec
 	github.com/rs/zerolog v1.26.1
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0
