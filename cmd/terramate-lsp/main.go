@@ -81,7 +81,7 @@ func runServer(conn io.ReadWriteCloser) {
 
 	logger.Info().
 		Str("mode", *modeFlag).
-		Msg("Starting Terramate Language Server...")
+		Msg("Starting Terramate Language Server")
 
 	rpcConn := jsonrpc2.NewConn(jsonrpc2.NewStream(conn))
 	server := tmlsp.NewServer(rpcConn)

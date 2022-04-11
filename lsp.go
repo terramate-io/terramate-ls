@@ -163,12 +163,8 @@ func (s *Server) handleDocumentOpen(
 		return err
 	}
 
-	log.Debug().Msgf("got URI=%s", params.TextDocument.URI)
-
 	fname := params.TextDocument.URI.Filename()
 	content := params.TextDocument.Text
-
-	log.Debug().Msgf("got file=%s", fname)
 
 	err := checkFile(fname, content)
 	return s.sendDiagnostics(ctx, params.TextDocument.URI, err)
@@ -194,9 +190,6 @@ func (s *Server) handleDocumentChange(
 
 	content := params.ContentChanges[0].Text
 	fname := params.TextDocument.URI.Filename()
-
-	log.Debug().Msgf("got URI=%s", params.TextDocument.URI)
-	log.Debug().Msgf("got file=%s", fname)
 
 	err := checkFile(fname, content)
 	return s.sendDiagnostics(ctx, params.TextDocument.URI, err)
