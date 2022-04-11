@@ -194,6 +194,10 @@ func (s *Server) handleDocumentChange(
 
 	content := params.ContentChanges[0].Text
 	fname := params.TextDocument.URI.Filename()
+
+	log.Debug().Msgf("got URI=%s", params.TextDocument.URI)
+	log.Debug().Msgf("got file=%s", fname)
+
 	err := checkFile(fname, content)
 	return s.sendDiagnostics(ctx, params.TextDocument.URI, err)
 }
