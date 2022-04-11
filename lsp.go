@@ -167,7 +167,7 @@ func (s *Server) handleDocumentOpen(
 	content := params.TextDocument.Text
 
 	err := checkFile(fname, content)
-	return s.sendDiagnostics(ctx, fname, err)
+	return s.sendDiagnostics(ctx, params.TextDocument.URI, err)
 }
 
 func (s *Server) handleDocumentChange(
@@ -191,10 +191,10 @@ func (s *Server) handleDocumentChange(
 	content := params.ContentChanges[0].Text
 	fname := params.TextDocument.URI.Filename()
 	err := checkFile(fname, content)
-	return s.sendDiagnostics(ctx, fname, err)
+	return s.sendDiagnostics(ctx, params.TextDocument.URI, err)
 }
 
-func (s *Server) sendDiagnostics(ctx context.Context, fname string, err error) error {
+func (s *Server) sendDiagnostics(ctx context.Context, uri lsp.URI, err error) error {
 	diags := []lsp.Diagnostic{}
 
 	if err != nil {
@@ -222,7 +222,7 @@ func (s *Server) sendDiagnostics(ctx context.Context, fname string, err error) e
 	}
 
 	err = s.conn.Notify(ctx, lsp.MethodTextDocumentPublishDiagnostics, lsp.PublishDiagnosticsParams{
-		URI:         uri.URI(filepath.ToSlash(fname)),
+		URI:         uri,
 		Diagnostics: diags,
 	})
 
