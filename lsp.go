@@ -247,7 +247,7 @@ func checkFile(fname string, content string) error {
 
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		log.Error().Msgf("adding directory to terramate parser", err)
+		log.Error().Msgf("adding directory to terramate parser: %s", err)
 		return err
 	}
 
