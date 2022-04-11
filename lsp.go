@@ -222,7 +222,7 @@ func (s *Server) sendDiagnostics(ctx context.Context, fname string, err error) e
 	}
 
 	err = s.conn.Notify(ctx, lsp.MethodTextDocumentPublishDiagnostics, lsp.PublishDiagnosticsParams{
-		URI:         uri.URI(fname),
+		URI:         uri.URI(filepath.ToSlash(fname)),
 		Diagnostics: diags,
 	})
 
