@@ -16,6 +16,7 @@ package tmlsp_test
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net"
 	"testing"
@@ -64,6 +65,12 @@ func TestInitialization(t *testing.T) {
 
 	gotReq := <-f.editor.requests
 	assert.EqualStrings(t, lsp.MethodWindowShowMessage, gotReq.Method())
+
+	gotParams := lsp.ShowMessageParams{}
+	assert.NoError(t, json.Unmarshal(gotReq.Params(), &gotParams))
+	if lsp.MessageTypeInfo != gotParams.Type {
+		t.Fatalf("message type got %v != want %v", gotParams.Type, lsp.MessageTypeInfo)
+	}
 }
 
 type fixture struct {
