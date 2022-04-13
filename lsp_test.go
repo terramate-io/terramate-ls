@@ -16,6 +16,7 @@ package tmlsp_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -86,6 +87,8 @@ type editor struct {
 }
 
 func (e *editor) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
+	fmt.Println("request method", r.Method())
+	fmt.Println("request params", string(r.Params()))
 	return jsonrpc2.ErrMethodNotFound
 }
 
