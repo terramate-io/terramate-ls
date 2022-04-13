@@ -190,7 +190,7 @@ func (s *Server) handleDocumentChange(
 	}
 
 	if len(params.ContentChanges) != 1 {
-		err := fmt.Errorf("unexpected content change length: %d", len(params.ContentChanges))
+		err := fmt.Errorf("expected content changes = 1, got = %d", len(params.ContentChanges))
 		log.Error().Err(err).Send()
 		return err
 	}
