@@ -106,6 +106,16 @@ func setup(t *testing.T) fixture {
 
 		<-editorConn.Done()
 		<-serverConn.Done()
+
+		// Now that we closed and waited for the editor to stop
+		// we can check that no requests were left unhandled by the test
+		select {
+		case req := <-e.requests:
+			{
+				t.Fatalf("unhandled editor request: %v", req)
+			}
+		default:
+		}
 	})
 
 	return fixture{
