@@ -49,7 +49,7 @@ func TestInitialization(t *testing.T) {
 	}
 
 	got := lsp.InitializeResult{}
-	_, err := f.editor.Call(
+	_, err := f.editor.call(
 		lsp.MethodInitialize,
 		lsp.InitializeParams{
 			RootURI: uri.File(f.sandbox.RootDir()),
@@ -61,6 +61,9 @@ func TestInitialization(t *testing.T) {
 	if diff := cmp.Diff(got, want); diff != "" {
 		t.Fatalf("init result differs, got(-) want(+):\n%s", diff)
 	}
+
+	gotReq := <-f.editor.requests
+	assert.EqualStrings(t, lsp.MethodWindowShowMessage, gotReq.Method())
 }
 
 type fixture struct {
@@ -83,8 +86,8 @@ func setup(t *testing.T) fixture {
 	serverConn.Go(context.Background(), s.Handler)
 
 	editorConn := jsonrpc2Conn(editorRW)
-	e := &editor{conn: editorConn}
-	editorConn.Go(context.Background(), e.Handler)
+	e := newEditor(editorConn)
+	editorConn.Go(context.Background(), e.handler)
 
 	t.Cleanup(func() {
 		if err := editorConn.Close(); err != nil {
@@ -96,6 +99,8 @@ func setup(t *testing.T) fixture {
 
 		<-editorConn.Done()
 		<-serverConn.Done()
+
+		e.close()
 	})
 
 	return fixture{
@@ -105,15 +110,30 @@ func setup(t *testing.T) fixture {
 }
 
 type editor struct {
-	conn jsonrpc2.Conn
+	conn     jsonrpc2.Conn
+	requests chan jsonrpc2.Request
 }
 
-func (e *editor) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
+func newEditor(conn jsonrpc2.Conn) *editor {
+	return &editor{
+		conn:     conn,
+		requests: make(chan jsonrpc2.Request),
+	}
+}
+
+func (e *editor) handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
+	go func() {
+		e.requests <- r
+	}()
 	return nil
 }
 
-func (e editor) Call(method string, params, result interface{}) (jsonrpc2.ID, error) {
+func (e editor) call(method string, params, result interface{}) (jsonrpc2.ID, error) {
 	return e.conn.Call(context.Background(), method, params, result)
+}
+
+func (e *editor) close() {
+	close(e.requests)
 }
 
 func jsonrpc2Conn(rw io.ReadWriteCloser) jsonrpc2.Conn {
