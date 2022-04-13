@@ -33,7 +33,7 @@ import (
 
 const (
 	defaultLogLevel = "info"
-	defaultLogFmt   = "console"
+	defaultLogFmt   = "text"
 )
 
 var (
@@ -47,6 +47,8 @@ var (
 		"log-fmt", defaultLogFmt,
 		"Log format to use: 'console', 'text', or 'json'.",
 	)
+
+	defaultLogWriter = os.Stderr
 )
 
 func main() {
@@ -63,7 +65,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	configureLogging(*logLevelFlag, *logFmtFlag, os.Stderr)
+	configureLogging(*logLevelFlag, *logFmtFlag, defaultLogWriter)
 	runServer(&readWriter{os.Stdin, os.Stdout})
 }
 
@@ -96,13 +98,20 @@ type readWriter struct {
 func (s *readWriter) Close() error { return nil }
 
 func configureLogging(logLevel string, logFmt string, output io.Writer) {
-	zloglevel, err := zerolog.ParseLevel(logLevel)
+	switch logLevel {
+	case "trace", "debug", "info", "warn", "error", "fatal":
+		zloglevel, err := zerolog.ParseLevel(logLevel)
 
-	if err != nil {
-		zloglevel = zerolog.FatalLevel
+		if err != nil {
+			fmt.Fprintf(defaultLogWriter, "error: failed to parse -log-level=%s\n", logLevel)
+			os.Exit(1)
+		}
+
+		zerolog.SetGlobalLevel(zloglevel)
+	default:
+		fmt.Fprintf(defaultLogWriter, "error: log level %q not supported\n", logLevel)
+		os.Exit(1)
 	}
-
-	zerolog.SetGlobalLevel(zloglevel)
 
 	if logFmt == "json" {
 		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix

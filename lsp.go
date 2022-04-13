@@ -17,7 +17,13 @@ package tmlsp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/mineiros-io/terramate/errors"
+	"github.com/mineiros-io/terramate/hcl"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"go.lsp.dev/jsonrpc2"
@@ -36,22 +42,17 @@ type Server struct {
 
 // handler is a jsonrpc2.Handler with a custom logger.
 type handler = func(
-	l zerolog.Logger,
 	ctx context.Context,
 	reply jsonrpc2.Replier,
 	req jsonrpc2.Request,
+	log zerolog.Logger,
 ) error
 
 type handlers map[string]handler
 
 // NewServer creates a new language server.
 func NewServer(conn jsonrpc2.Conn) *Server {
-	s := &Server{
-		conn: conn,
-		log:  log.Logger, // by default uses global Logger
-	}
-	s.buildHandlers()
-	return s
+	return ServerWithLogger(conn, log.Logger)
 }
 
 // ServerWithLogger creates a new language server with a custom logger.
@@ -66,7 +67,10 @@ func ServerWithLogger(conn jsonrpc2.Conn, l zerolog.Logger) *Server {
 
 func (s *Server) buildHandlers() {
 	s.handlers = map[string]handler{
-		lsp.MethodInitialize: s.handleInitialize,
+		lsp.MethodInitialize:            s.handleInitialize,
+		lsp.MethodTextDocumentDidOpen:   s.handleDocumentOpen,
+		lsp.MethodTextDocumentDidChange: s.handleDocumentChange,
+		lsp.MethodTextDocumentDidSave:   s.handleDocumentSaved,
 	}
 }
 
@@ -74,6 +78,7 @@ func (s *Server) buildHandlers() {
 func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
 	logger := s.log.With().
 		Str("action", "server.Handler()").
+		Str("workspace", s.workspace).
 		Str("method", r.Method()).
 		Logger()
 
@@ -82,18 +87,18 @@ func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2
 		Msg("handling request.")
 
 	if handler, ok := s.handlers[r.Method()]; ok {
-		return handler(logger, ctx, reply, r)
+		return handler(ctx, reply, r, logger)
 	}
 
 	logger.Trace().Msg("not implemented")
-	return nil
+	return jsonrpc2.ErrMethodNotFound
 }
 
 func (s *Server) handleInitialize(
-	log zerolog.Logger,
 	ctx context.Context,
 	reply jsonrpc2.Replier,
 	r jsonrpc2.Request,
+	log zerolog.Logger,
 ) error {
 	type initParams struct {
 		ProcessID int    `json:"processId,omitempty"`
@@ -102,7 +107,11 @@ func (s *Server) handleInitialize(
 
 	var params initParams
 	if err := json.Unmarshal(r.Params(), &params); err != nil {
-		log.Fatal().Err(err).Msg("failed to unmarshal params")
+		log.Error().Err(err).Msg("failed to unmarshal params")
+		// TODO(i4k): we should check if it's a json.UnmarshallTypeErr or
+		// json.UnmarshalFieldError to return jsonrpc2.ErrInvalidParams and
+		// json.ErrParse otherwise.
+		return jsonrpc2.ErrInvalidParams
 	}
 
 	s.workspace = string(uri.New(params.RootURI).Filename())
@@ -131,6 +140,8 @@ func (s *Server) handleInitialize(
 	}, nil)
 
 	if err != nil {
+		// WHY(i4k): in stdio mode it's impossible to have network issues.
+		// TODO(i4k): improve this for the networked server.
 		log.Fatal().Err(err).Msg("failed to reply")
 	}
 
@@ -142,8 +153,187 @@ func (s *Server) handleInitialize(
 	})
 
 	if err != nil {
-		log.Err(err).Msg("failed to notify client")
+		log.Fatal().Err(err).Msg("failed to notify client")
+	}
+	return nil
+}
+
+func (s *Server) handleDocumentOpen(
+	ctx context.Context,
+	reply jsonrpc2.Replier,
+	r jsonrpc2.Request,
+	log zerolog.Logger,
+) error {
+	var params lsp.DidOpenTextDocumentParams
+	if err := json.Unmarshal(r.Params(), &params); err != nil {
+		log.Error().Err(err).Msg("failed to unmarshal params")
+		return jsonrpc2.ErrParse
 	}
 
+	fname := params.TextDocument.URI.Filename()
+	content := params.TextDocument.Text
+
+	err := checkFile(fname, content)
+	return s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err)
+}
+
+func (s *Server) handleDocumentChange(
+	ctx context.Context,
+	reply jsonrpc2.Replier,
+	r jsonrpc2.Request,
+	log zerolog.Logger,
+) error {
+	var params lsp.DidChangeTextDocumentParams
+	if err := json.Unmarshal(r.Params(), &params); err != nil {
+		log.Error().Err(err).Msg("failed to unmarshal params")
+		return err
+	}
+
+	if len(params.ContentChanges) != 1 {
+		err := fmt.Errorf("expected content changes = 1, got = %d", len(params.ContentChanges))
+		log.Error().Err(err).Send()
+		return err
+	}
+
+	content := params.ContentChanges[0].Text
+	fname := params.TextDocument.URI.Filename()
+
+	err := checkFile(fname, content)
+	return s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err)
+}
+
+func (s *Server) handleDocumentSaved(
+	ctx context.Context,
+	reply jsonrpc2.Replier,
+	r jsonrpc2.Request,
+	log zerolog.Logger,
+) error {
+	var params lsp.DidSaveTextDocumentParams
+	if err := json.Unmarshal(r.Params(), &params); err != nil {
+		log.Error().Err(err).Msg("failed to unmarshal params")
+		return jsonrpc2.ErrParse
+	}
+
+	fname := params.TextDocument.URI.Filename()
+	data, err := os.ReadFile(fname)
+	if err != nil {
+		log.Error().Err(err).Msg("reading saved file.")
+		return nil
+	}
+
+	err = checkFile(fname, string(data))
+	return s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err)
+}
+
+func (s *Server) sendErrorDiagnostics(ctx context.Context, currentFile lsp.URI, err error) error {
+	if err == nil {
+		log.Debug().Str("file", currentFile.Filename()).
+			Msg("cleaning editor errors")
+
+		// this is required to clear the `problems panel` for the active file
+		// if it had errors before.
+		s.sendDiagnostics(ctx, currentFile, []lsp.Diagnostic{})
+		return nil
+	}
+
+	e, ok := err.(*errors.Error)
+	if !ok {
+		log.Debug().Err(err).Msg("unknown error ignored because it doesn't provide file range")
+		return nil
+	}
+
+	log.Debug().Str("error", e.Detailed()).Msg("sending diagnostics")
+
+	fileRange := lsp.Range{}
+	fileRange.Start.Line = uint32(e.FileRange.Start.Line) - 1
+	fileRange.Start.Character = uint32(e.FileRange.Start.Column) - 1
+	fileRange.End.Line = uint32(e.FileRange.End.Line) - 1
+	fileRange.End.Character = uint32(e.FileRange.End.Column) - 1
+
+	// TODO(i4k): improve terramate to support multiple errors.
+	diags := []lsp.Diagnostic{
+		{
+			Message:  e.Error(),
+			Range:    fileRange,
+			Severity: lsp.DiagnosticSeverityError,
+			Source:   "terramate",
+		},
+	}
+
+	filePath := lsp.URI(uri.File(filepath.ToSlash(e.FileRange.Filename)))
+	s.sendDiagnostics(ctx, filePath, diags)
+
+	if filePath != currentFile {
+		s.sendDiagnostics(ctx, currentFile, []lsp.Diagnostic{})
+	}
 	return nil
+}
+
+func (s *Server) sendDiagnostics(ctx context.Context, uri lsp.URI, diags []lsp.Diagnostic) {
+	err := s.conn.Notify(ctx, lsp.MethodTextDocumentPublishDiagnostics, lsp.PublishDiagnosticsParams{
+		URI:         uri,
+		Diagnostics: diags,
+	})
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to send diagnostics to the client.")
+	}
+}
+
+// checkFile checks if the given changed file has any errors.
+// It parses all files in the directory but the provided one is added manually
+// because it can be unsaved.
+func checkFile(fname string, content string) error {
+	dir := filepath.Dir(fname)
+	parser := hcl.NewTerramateParser(dir)
+	err := parser.AddFile(fname, []byte(content))
+	if err != nil {
+		log.Error().Err(err).Send()
+		return err
+	}
+
+	dirEntries, err := os.ReadDir(dir)
+	if err != nil {
+		log.Error().Err(err).Msg("listing terramate files")
+		return err
+	}
+
+	log.Trace().Msg("looking for Terramate files")
+
+	for _, dirEntry := range dirEntries {
+		logger := log.With().
+			Str("entryName", dirEntry.Name()).
+			Logger()
+
+		if dirEntry.IsDir() {
+			logger.Trace().Msg("ignoring dir")
+			continue
+		}
+
+		filename := dirEntry.Name()
+		if strings.HasSuffix(filename, ".tm") || strings.HasSuffix(filename, ".tm.hcl") {
+			path := filepath.Join(dir, filename)
+
+			if path == fname {
+				// file already added
+				continue
+			}
+
+			contents, err := os.ReadFile(path)
+			if err != nil {
+				log.Error().Err(err).Send()
+				return err
+			}
+
+			err = parser.AddFile(path, contents)
+			if err != nil {
+				log.Error().Err(err).Send()
+				return err
+			}
+		}
+	}
+
+	log.Debug().Msg("about to parse all the files")
+	_, err = parser.Parse()
+	return err
 }
