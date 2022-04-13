@@ -16,7 +16,6 @@ package tmlsp_test
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -25,6 +24,7 @@ import (
 	lsp "go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/madlambda/spells/assert"
 	tmlsp "github.com/mineiros-io/terramate-lsp"
 	"github.com/rs/zerolog"
@@ -34,6 +34,20 @@ import (
 
 func TestInitialization(t *testing.T) {
 	f := setup(t)
+
+	want := lsp.InitializeResult{
+		Capabilities: lsp.ServerCapabilities{
+			CompletionProvider: &lsp.CompletionOptions{},
+			DefinitionProvider: false,
+			HoverProvider:      false,
+			TextDocumentSync: map[string]interface{}{
+				"change":    float64(1),
+				"openClose": true,
+				"save":      map[string]interface{}{},
+			},
+		},
+	}
+
 	got := lsp.InitializeResult{}
 	_, err := f.editor.Call(
 		lsp.MethodInitialize,
@@ -41,7 +55,12 @@ func TestInitialization(t *testing.T) {
 			RootURI: uri.File(f.sandbox.RootDir()),
 		},
 		&got)
+
 	assert.NoError(t, err, "calling %q", lsp.MethodInitialize)
+
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Fatalf("init result differs, got(-) want(+):\n%s", diff)
+	}
 }
 
 type fixture struct {
@@ -86,8 +105,6 @@ type editor struct {
 }
 
 func (e *editor) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
-	fmt.Println("method", r.Method())
-	fmt.Println("params", string(r.Params()))
 	return nil
 }
 
