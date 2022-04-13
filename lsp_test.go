@@ -35,7 +35,7 @@ import (
 func TestInitialization(t *testing.T) {
 	f := setup(t)
 	got := lsp.InitializeResult{}
-	_, err := f.server.Call(
+	_, err := f.editor.Call(
 		lsp.MethodInitialize,
 		lsp.InitializeParams{
 			RootURI: uri.File(f.sandbox.RootDir()),
@@ -46,7 +46,6 @@ func TestInitialization(t *testing.T) {
 
 type fixture struct {
 	sandbox sandbox.S
-	server  *server
 	editor  *editor
 }
 
@@ -64,8 +63,8 @@ func setup(t *testing.T) fixture {
 	s := tmlsp.NewServer(serverConn)
 	serverConn.Go(context.Background(), s.Handler)
 
-	e := &editor{}
 	editorConn := jsonrpc2Conn(editorRW)
+	e := &editor{conn: editorConn}
 	editorConn.Go(context.Background(), e.Handler)
 
 	t.Cleanup(func() {
@@ -77,27 +76,23 @@ func setup(t *testing.T) fixture {
 	})
 
 	return fixture{
-		sandbox: sandbox.New(t),
 		editor:  e,
-		server:  &server{conn: serverConn},
+		sandbox: sandbox.New(t),
 	}
 }
 
 type editor struct {
-}
-
-func (e *editor) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
-	fmt.Println("request method", r.Method())
-	fmt.Println("request params", string(r.Params()))
-	return jsonrpc2.ErrMethodNotFound
-}
-
-type server struct {
 	conn jsonrpc2.Conn
 }
 
-func (s server) Call(method string, params, result interface{}) (jsonrpc2.ID, error) {
-	return s.conn.Call(context.Background(), method, params, result)
+func (e *editor) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
+	fmt.Println("method", r.Method())
+	fmt.Println("params", string(r.Params()))
+	return nil
+}
+
+func (e editor) Call(method string, params, result interface{}) (jsonrpc2.ID, error) {
+	return e.conn.Call(context.Background(), method, params, result)
 }
 
 func jsonrpc2Conn(rw io.ReadWriteCloser) jsonrpc2.Conn {
