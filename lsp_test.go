@@ -20,23 +20,50 @@ import (
 	"testing"
 
 	"go.lsp.dev/jsonrpc2"
+	lsp "go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 
+	"github.com/madlambda/spells/assert"
 	tmlsp "github.com/mineiros-io/terramate-lsp"
+	"github.com/rs/zerolog"
+
+	"github.com/mineiros-io/terramate/test/sandbox"
 )
 
-func runServer(t *testing.T) jsonrpc2.Conn {
+func TestInitialization(t *testing.T) {
+	s := sandbox.New(t)
+	server := runServer(t)
+	got := lsp.InitializeResult{}
+	_, err := server.Call(
+		lsp.MethodInitialize,
+		lsp.InitializeParams{
+			RootURI: uri.File(s.RootDir()),
+		},
+		&got)
+	assert.NoError(t, err, "calling %q", lsp.MethodInitialize)
+}
+
+func runServer(t *testing.T) server {
 	t.Helper()
 
 	stream := jsonrpc2.NewStream(&testBuffer{})
 	conn := jsonrpc2.NewConn(stream)
-	server := tmlsp.NewServer(conn)
-	conn.Go(context.Background(), server.Handler)
+	s := tmlsp.NewServer(conn)
+	conn.Go(context.Background(), s.Handler)
 
 	t.Cleanup(func() {
 		conn.Close()
 		<-conn.Done()
 	})
-	return conn
+	return server{conn: conn}
+}
+
+type server struct {
+	conn jsonrpc2.Conn
+}
+
+func (s server) Call(method string, params, result interface{}) (jsonrpc2.ID, error) {
+	return s.conn.Call(context.Background(), method, params, result)
 }
 
 type testBuffer struct {
@@ -45,4 +72,8 @@ type testBuffer struct {
 
 func (tb *testBuffer) Close() error {
 	return nil
+}
+
+func init() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
