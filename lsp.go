@@ -227,6 +227,9 @@ func (s *Server) handleDocumentSaved(
 
 func (s *Server) sendErrorDiagnostics(ctx context.Context, currentFile lsp.URI, err error) error {
 	if err == nil {
+		log.Debug().Str("file", currentFile.Filename()).
+			Msg("cleaning editor errors")
+
 		// this is required to clear the `problems panel` for the active file
 		// if it had errors before.
 		s.sendDiagnostics(ctx, currentFile, []lsp.Diagnostic{})
@@ -329,6 +332,8 @@ func checkFile(fname string, content string) error {
 			}
 		}
 	}
+
+	log.Debug().Msg("about to parse all the files")
 	_, err = parser.Parse()
 	return err
 }
