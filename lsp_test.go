@@ -32,32 +32,61 @@ import (
 )
 
 func TestInitialization(t *testing.T) {
-	s := sandbox.New(t)
-	server := runServer(t)
+	f := setup(t)
 	got := lsp.InitializeResult{}
-	_, err := server.Call(
+	_, err := f.server.Call(
 		lsp.MethodInitialize,
 		lsp.InitializeParams{
-			RootURI: uri.File(s.RootDir()),
+			RootURI: uri.File(f.sandbox.RootDir()),
 		},
 		&got)
 	assert.NoError(t, err, "calling %q", lsp.MethodInitialize)
 }
 
-func runServer(t *testing.T) server {
+type fixture struct {
+	sandbox sandbox.S
+	server  *server
+	editor  *editor
+}
+
+func setup(t *testing.T) fixture {
 	t.Helper()
 
-	reader, writer := net.Pipe()
-	stream := jsonrpc2.NewStream(&testBuffer{reader, writer})
-	conn := jsonrpc2.NewConn(stream)
-	s := tmlsp.NewServer(conn)
-	conn.Go(context.Background(), s.Handler)
+	// WHY: LSP is bidirectional, the editor calls the server
+	// and the server also calls the editor (not only sending responses),
+	// It is not a classic request/response protocol so we need both
+	// running + connected through a pipe.
+
+	editorRW, serverRW := net.Pipe()
+
+	serverConn := jsonrpc2Conn(serverRW)
+	s := tmlsp.NewServer(serverConn)
+	serverConn.Go(context.Background(), s.Handler)
+
+	e := &editor{}
+	editorConn := jsonrpc2Conn(editorRW)
+	editorConn.Go(context.Background(), e.Handler)
 
 	t.Cleanup(func() {
-		conn.Close()
-		<-conn.Done()
+		editorConn.Close()
+		serverConn.Close()
+
+		<-editorConn.Done()
+		<-serverConn.Done()
 	})
-	return server{conn: conn}
+
+	return fixture{
+		sandbox: sandbox.New(t),
+		editor:  e,
+		server:  &server{conn: serverConn},
+	}
+}
+
+type editor struct {
+}
+
+func (e *editor) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
+	return jsonrpc2.ErrMethodNotFound
 }
 
 type server struct {
@@ -68,13 +97,9 @@ func (s server) Call(method string, params, result interface{}) (jsonrpc2.ID, er
 	return s.conn.Call(context.Background(), method, params, result)
 }
 
-type testBuffer struct {
-	io.Reader
-	io.Writer
-}
-
-func (tb *testBuffer) Close() error {
-	return nil
+func jsonrpc2Conn(rw io.ReadWriteCloser) jsonrpc2.Conn {
+	stream := jsonrpc2.NewStream(rw)
+	return jsonrpc2.NewConn(stream)
 }
 
 func init() {
