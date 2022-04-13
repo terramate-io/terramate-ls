@@ -48,8 +48,8 @@ func TestInitialization(t *testing.T) {
 			},
 		},
 	}
-
 	got := lsp.InitializeResult{}
+
 	_, err := f.editor.call(
 		lsp.MethodInitialize,
 		lsp.InitializeParams{
@@ -106,8 +106,6 @@ func setup(t *testing.T) fixture {
 
 		<-editorConn.Done()
 		<-serverConn.Done()
-
-		e.close()
 	})
 
 	return fixture{
@@ -137,10 +135,6 @@ func (e *editor) handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2
 
 func (e editor) call(method string, params, result interface{}) (jsonrpc2.ID, error) {
 	return e.conn.Call(context.Background(), method, params, result)
-}
-
-func (e *editor) close() {
-	close(e.requests)
 }
 
 func jsonrpc2Conn(rw io.ReadWriteCloser) jsonrpc2.Conn {
