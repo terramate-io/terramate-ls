@@ -15,8 +15,9 @@
 package tmlsp_test
 
 import (
-	"bytes"
 	"context"
+	"io"
+	"net"
 	"testing"
 
 	"go.lsp.dev/jsonrpc2"
@@ -46,7 +47,8 @@ func TestInitialization(t *testing.T) {
 func runServer(t *testing.T) server {
 	t.Helper()
 
-	stream := jsonrpc2.NewStream(&testBuffer{})
+	reader, writer := net.Pipe()
+	stream := jsonrpc2.NewStream(&testBuffer{reader, writer})
 	conn := jsonrpc2.NewConn(stream)
 	s := tmlsp.NewServer(conn)
 	conn.Go(context.Background(), s.Handler)
@@ -67,7 +69,8 @@ func (s server) Call(method string, params, result interface{}) (jsonrpc2.ID, er
 }
 
 type testBuffer struct {
-	bytes.Buffer
+	io.Reader
+	io.Writer
 }
 
 func (tb *testBuffer) Close() error {
