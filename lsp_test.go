@@ -87,8 +87,12 @@ func setup(t *testing.T) fixture {
 	editorConn.Go(context.Background(), e.Handler)
 
 	t.Cleanup(func() {
-		editorConn.Close()
-		serverConn.Close()
+		if err := editorConn.Close(); err != nil {
+			t.Errorf("closing editor connection: %v", err)
+		}
+		if err := serverConn.Close(); err != nil {
+			t.Errorf("closing server connection: %v", err)
+		}
 
 		<-editorConn.Done()
 		<-serverConn.Done()
