@@ -51,7 +51,7 @@ coverage/show: coverage
 ## test code
 .PHONY: test
 test: 
-	go test -count=1 -race ./...
+	go test -count=1 -race -timeout=10s ./...
 
 ## Build terramate-lsp into bin directory
 .PHONY: build
