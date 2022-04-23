@@ -67,10 +67,12 @@ func ServerWithLogger(conn jsonrpc2.Conn, l zerolog.Logger) *Server {
 
 func (s *Server) buildHandlers() {
 	s.handlers = map[string]handler{
-		lsp.MethodInitialize:            s.handleInitialize,
-		lsp.MethodTextDocumentDidOpen:   s.handleDocumentOpen,
-		lsp.MethodTextDocumentDidChange: s.handleDocumentChange,
-		lsp.MethodTextDocumentDidSave:   s.handleDocumentSaved,
+		lsp.MethodInitialize:             s.handleInitialize,
+		lsp.MethodInitialized:            s.handleInitialized,
+		lsp.MethodTextDocumentDidOpen:    s.handleDocumentOpen,
+		lsp.MethodTextDocumentDidChange:  s.handleDocumentChange,
+		lsp.MethodTextDocumentDidSave:    s.handleDocumentSaved,
+		lsp.MethodTextDocumentCompletion: s.handleCompletion,
 	}
 }
 
@@ -91,7 +93,7 @@ func (s *Server) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2
 	}
 
 	logger.Trace().Msg("not implemented")
-	return jsonrpc2.ErrMethodNotFound
+	return reply(ctx, nil, jsonrpc2.ErrMethodNotFound)
 }
 
 func (s *Server) handleInitialize(
@@ -158,6 +160,15 @@ func (s *Server) handleInitialize(
 	return nil
 }
 
+func (s *Server) handleInitialized(
+	ctx context.Context,
+	reply jsonrpc2.Replier,
+	r jsonrpc2.Request,
+	log zerolog.Logger,
+) error {
+	return reply(ctx, nil, nil)
+}
+
 func (s *Server) handleDocumentOpen(
 	ctx context.Context,
 	reply jsonrpc2.Replier,
@@ -174,7 +185,9 @@ func (s *Server) handleDocumentOpen(
 	content := params.TextDocument.Text
 
 	err := checkFile(fname, content)
-	return s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err)
+	return reply(ctx, nil,
+		s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err),
+	)
 }
 
 func (s *Server) handleDocumentChange(
@@ -199,7 +212,9 @@ func (s *Server) handleDocumentChange(
 	fname := params.TextDocument.URI.Filename()
 
 	err := checkFile(fname, content)
-	return s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err)
+	return reply(ctx, nil,
+		s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err),
+	)
 }
 
 func (s *Server) handleDocumentSaved(
@@ -222,7 +237,9 @@ func (s *Server) handleDocumentSaved(
 	}
 
 	err = checkFile(fname, string(data))
-	return s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err)
+	return reply(ctx, nil,
+		s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err),
+	)
 }
 
 func (s *Server) sendErrorDiagnostics(ctx context.Context, currentFile lsp.URI, err error) error {
@@ -267,6 +284,21 @@ func (s *Server) sendErrorDiagnostics(ctx context.Context, currentFile lsp.URI, 
 		s.sendDiagnostics(ctx, currentFile, []lsp.Diagnostic{})
 	}
 	return nil
+}
+
+func (s *Server) handleCompletion(
+	ctx context.Context,
+	reply jsonrpc2.Replier,
+	r jsonrpc2.Request,
+	log zerolog.Logger,
+) error {
+	var params lsp.CompletionParams
+	if err := json.Unmarshal(r.Params(), &params); err != nil {
+		log.Error().Err(err).Msg("failed to unmarshal params")
+		return jsonrpc2.ErrParse
+	}
+	log.Debug().Str("params", string(r.Params()))
+	return reply(ctx, nil, nil)
 }
 
 func (s *Server) sendDiagnostics(ctx context.Context, uri lsp.URI, diags []lsp.Diagnostic) {
