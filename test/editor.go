@@ -30,13 +30,17 @@ import (
 	"go.lsp.dev/uri"
 )
 
+// Editor is the editor server.
 type Editor struct {
-	t        *testing.T
-	sandbox  sandbox.S
-	conn     jsonrpc2.Conn
+	t       *testing.T
+	sandbox sandbox.S
+	conn    jsonrpc2.Conn
+
+	// Requests that arrived at the editor.
 	Requests chan jsonrpc2.Request
 }
 
+// NewEditor creates a new editor server.
 func NewEditor(t *testing.T, s sandbox.S, conn jsonrpc2.Conn) *Editor {
 	return &Editor{
 		t:        t,
@@ -46,6 +50,7 @@ func NewEditor(t *testing.T, s sandbox.S, conn jsonrpc2.Conn) *Editor {
 	}
 }
 
+// Handler is the default editor request handler.
 func (e *Editor) Handler(ctx context.Context, reply jsonrpc2.Replier, r jsonrpc2.Request) error {
 	go func() {
 		e.Requests <- r
@@ -57,6 +62,8 @@ func (e *Editor) call(method string, params, result interface{}) (jsonrpc2.ID, e
 	return e.conn.Call(context.Background(), method, params, result)
 }
 
+// Initialize sends a initialize request to the language server and return its
+// result.
 func (e *Editor) Initialize() lsp.InitializeResult {
 	e.t.Helper()
 	var got lsp.InitializeResult
@@ -71,6 +78,8 @@ func (e *Editor) Initialize() lsp.InitializeResult {
 	return got
 }
 
+// CheckInitialize sends an initialize request to the language server and checks
+// if the response is the expected default response (See DefaultInitializeResult).
 func (e *Editor) CheckInitialize() {
 	e.t.Helper()
 	got := e.Initialize()
@@ -108,6 +117,8 @@ func (e *Editor) Open(path string) {
 	}
 }
 
+// DefaultInitializeResult is the default server response for the initialization
+// request.
 func DefaultInitializeResult() lsp.InitializeResult {
 	return lsp.InitializeResult{
 		Capabilities: lsp.ServerCapabilities{

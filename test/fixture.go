@@ -25,6 +25,7 @@ import (
 	"go.lsp.dev/jsonrpc2"
 )
 
+// Fixture is the default test fixture.
 type Fixture struct {
 	Sandbox sandbox.S
 	Editor  *Editor
