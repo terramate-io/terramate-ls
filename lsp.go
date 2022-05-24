@@ -373,18 +373,19 @@ func listFiles(fromFile string) ([]string, error) {
 func checkFiles(files []string, thisFile string, thisContent string) error {
 	dir := filepath.Dir(thisFile)
 	parser := hcl.NewTerramateParser(dir)
-	err := parser.AddFile(thisFile, []byte(thisContent))
-	if err != nil {
-		log.Error().Err(err).Send()
-		return err
-	}
 
 	for _, fname := range files {
+		var (
+			contents []byte
+			err      error
+		)
+
 		if thisFile == fname {
-			continue
+			contents = []byte(thisContent)
+		} else {
+			contents, err = os.ReadFile(fname)
 		}
 
-		contents, err := os.ReadFile(fname)
 		if err != nil {
 			log.Error().Err(err).Send()
 			return err
@@ -398,6 +399,6 @@ func checkFiles(files []string, thisFile string, thisContent string) error {
 	}
 
 	log.Debug().Msg("about to parse all the files")
-	_, err = parser.Parse()
+	_, err := parser.Parse()
 	return err
 }
