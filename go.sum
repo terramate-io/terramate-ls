@@ -344,8 +344,8 @@ github.com/mattn/go-runewidth v0.0.4/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzp
 github.com/mattn/go-shellwords v1.0.4/go.mod h1:3xCvwCdWdlDJUrvuMn7Wuy9eWs4pE8vqg+NOMyg4B2o=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/miekg/dns v1.0.8/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
-github.com/mineiros-io/terramate v0.0.12-0.20220411022201-2b921ea2cdec h1:Sm2TcbeAdD76pK2ZFfyjIPiZYBUH5FpugCT6Tlf66jk=
-github.com/mineiros-io/terramate v0.0.12-0.20220411022201-2b921ea2cdec/go.mod h1:mFy4ptKzRN48YMtWTFVcWescIxf16fAbw1ds7wYIdLA=
+github.com/mineiros-io/terramate v0.1.1 h1:2s/3bS1pmVQenpAcIFgu5GBx0Aj6PcJlhOG8bcGtIRg=
+github.com/mineiros-io/terramate v0.1.1/go.mod h1:ZHamukXC6S8xGHYw5t90CSgdAVjzJUWu1ZFZBmLMcrE=
 github.com/mitchellh/cli v1.1.2/go.mod h1:6iaV0fGdElS6dPBx0EApTxHrcWvmJphyh2n8YBLPPZ4=
 github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db/go.mod h1:l0dey0ia/Uv7NcFFVbCLtqEBQbrT4OCwCSKTEv6enCw=
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
