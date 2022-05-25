@@ -238,6 +238,7 @@ func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err e
 	errs := errors.L()
 	switch e := err.(type) {
 	case *errors.Error:
+		// an error can wrap a list of errors.
 		errs = e.AsList()
 	case *errors.List:
 		errs = e

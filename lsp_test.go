@@ -391,6 +391,10 @@ stack {
 					var gotParams lsp.PublishDiagnosticsParams
 					assert.NoError(t, json.Unmarshal(gotReq.Params(), &gotParams))
 
+					assert.EqualInts(t,
+						len(gotParams.Diagnostics), len(want.Diagnostics),
+						"number of diagnostics mismatch")
+
 					assert.Partial(t, gotParams, want, "diagnostic mismatch")
 				case <-time.After(10 * time.Millisecond):
 					t.Fatal("expected more requests")
