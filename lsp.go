@@ -238,7 +238,7 @@ func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err e
 	errs := errors.L()
 	switch e := err.(type) {
 	case *errors.Error:
-		errs.Append(e)
+		errs = e.AsList()
 	case *errors.List:
 		errs = e
 	default:
@@ -250,22 +250,28 @@ func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err e
 	diagsMap := map[string][]lsp.Diagnostic{}
 
 	for _, err := range errs.Errors() {
-		log.Debug().Str("error", err.Detailed()).Msg("sending diagnostics")
+		e, ok := err.(*errors.Error)
+		if !ok {
+			log.Debug().Err(err).Msg("ignoring error without metadata")
+			continue
+		}
 
-		filename := err.FileRange.Filename
-		_, ok := diagsMap[filename]
+		log.Debug().Str("error", e.Detailed()).Msg("sending diagnostics")
+
+		filename := e.FileRange.Filename
+		_, ok = diagsMap[filename]
 		if !ok {
 			diagsMap[filename] = []lsp.Diagnostic{}
 		}
 
 		fileRange := lsp.Range{}
-		fileRange.Start.Line = uint32(err.FileRange.Start.Line) - 1
-		fileRange.Start.Character = uint32(err.FileRange.Start.Column) - 1
-		fileRange.End.Line = uint32(err.FileRange.End.Line) - 1
-		fileRange.End.Character = uint32(err.FileRange.End.Column) - 1
+		fileRange.Start.Line = uint32(e.FileRange.Start.Line) - 1
+		fileRange.Start.Character = uint32(e.FileRange.Start.Column) - 1
+		fileRange.End.Line = uint32(e.FileRange.End.Line) - 1
+		fileRange.End.Character = uint32(e.FileRange.End.Column) - 1
 
 		diagsMap[filename] = append(diagsMap[filename], lsp.Diagnostic{
-			Message:  err.Message(),
+			Message:  e.Message(),
 			Range:    fileRange,
 			Severity: lsp.DiagnosticSeverityError,
 			Source:   "terramate",
