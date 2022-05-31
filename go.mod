@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/google/go-cmp v0.5.6
+	github.com/madlambda/spells v0.4.0
 	github.com/mineiros-io/terramate v0.1.2
 	github.com/rs/zerolog v1.26.1
 	go.lsp.dev/jsonrpc2 v0.10.0
@@ -24,7 +25,6 @@ require (
 	github.com/hashicorp/hcl/v2 v2.10.1 // indirect
 	github.com/hashicorp/terraform v0.15.3 // indirect
 	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734 // indirect
-	github.com/madlambda/spells v0.4.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
