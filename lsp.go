@@ -252,7 +252,7 @@ func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err e
 
 	for _, err := range errs.Errors() {
 		e, ok := err.(*errors.Error)
-		if !ok {
+		if !ok || e.FileRange.Empty() {
 			log.Debug().Err(err).Msg("ignoring error without metadata")
 			continue
 		}
@@ -260,11 +260,6 @@ func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err e
 		log.Debug().Str("error", e.Detailed()).Msg("sending diagnostics")
 
 		filename := e.FileRange.Filename
-		_, ok = diagsMap[filename]
-		if !ok {
-			diagsMap[filename] = []lsp.Diagnostic{}
-		}
-
 		fileRange := lsp.Range{}
 		fileRange.Start.Line = uint32(e.FileRange.Start.Line) - 1
 		fileRange.Start.Character = uint32(e.FileRange.Start.Column) - 1
@@ -375,10 +370,10 @@ func listFiles(fromFile string) ([]string, error) {
 	return files, nil
 }
 
-// checkFiles checks if the given provided files have errors but the thisFile
+// checkFiles checks if the given provided files have errors but the currentFile
 // is handled separately because it can be unsaved.
-func checkFiles(files []string, thisFile string, thisContent string) error {
-	dir := filepath.Dir(thisFile)
+func checkFiles(files []string, currentFile string, currentContent string) error {
+	dir := filepath.Dir(currentFile)
 	parser := hcl.NewTerramateParser(dir)
 
 	for _, fname := range files {
@@ -387,20 +382,18 @@ func checkFiles(files []string, thisFile string, thisContent string) error {
 			err      error
 		)
 
-		if thisFile == fname {
-			contents = []byte(thisContent)
+		if currentFile == fname {
+			contents = []byte(currentContent)
 		} else {
 			contents, err = os.ReadFile(fname)
 		}
 
 		if err != nil {
-			log.Error().Err(err).Send()
 			return err
 		}
 
 		err = parser.AddFile(fname, contents)
 		if err != nil {
-			log.Error().Err(err).Send()
 			return err
 		}
 	}
