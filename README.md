@@ -34,3 +34,12 @@ will still work.
 
 Finally, make sure that the `terramate-ls` binary is available on your PATH.
 This process will differ depending on your operating system.
+
+### Setup in the code editor
+
+At the moment only [vscode](https://code.visualstudio.com/) is officially
+supported by the [vscode-terramate](https://github.com/mineiros-io/vscode-terramate)
+extension.
+
+The only `terramate-ls` specific setup required is making sure it installed in a
+directory in the editor's `PATH` environment variable.
