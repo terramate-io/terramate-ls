@@ -234,6 +234,9 @@ func (s *Server) handleDocumentSaved(
 	return s.checkAndReply(ctx, reply, fname, string(content))
 }
 
+// sendErrorDiagnostics sends diagnostics for each provided file, the ones with
+// no reported error gets an empty list of diagnostics, so the editor can clean
+// up its problems panel for it.
 func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err error) error {
 	errs := errors.L()
 	switch e := err.(type) {
@@ -249,6 +252,11 @@ func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err e
 	}
 
 	diagsMap := map[string][]lsp.Diagnostic{}
+	for _, filename := range files {
+		if _, ok := diagsMap[filename]; !ok {
+			diagsMap[filename] = []lsp.Diagnostic{}
+		}
+	}
 
 	for _, err := range errs.Errors() {
 		e, ok := err.(*errors.Error)
@@ -272,12 +280,6 @@ func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err e
 			Severity: lsp.DiagnosticSeverityError,
 			Source:   "terramate",
 		})
-	}
-
-	for _, filename := range files {
-		if _, ok := diagsMap[filename]; !ok {
-			diagsMap[filename] = []lsp.Diagnostic{}
-		}
 	}
 
 	for _, filename := range files {
