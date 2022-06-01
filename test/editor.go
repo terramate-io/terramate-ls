@@ -117,6 +117,7 @@ func (e *Editor) Open(path string) {
 	}
 }
 
+// Change sends a didChange request to the language server.
 func (e *Editor) Change(path, content string) {
 	t := e.t
 	t.Helper()
