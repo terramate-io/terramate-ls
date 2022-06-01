@@ -337,7 +337,6 @@ func listFiles(fromFile string) ([]string, error) {
 	dir := filepath.Dir(fromFile)
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		log.Error().Err(err).Msg("listing terramate files")
 		return nil, err
 	}
 
