@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/mineiros-io/terramate/errors"
@@ -184,10 +185,7 @@ func (s *Server) handleDocumentOpen(
 	fname := params.TextDocument.URI.Filename()
 	content := params.TextDocument.Text
 
-	err := checkFile(fname, content)
-	return reply(ctx, nil,
-		s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err),
-	)
+	return s.checkAndReply(ctx, reply, fname, content)
 }
 
 func (s *Server) handleDocumentChange(
@@ -211,10 +209,7 @@ func (s *Server) handleDocumentChange(
 	content := params.ContentChanges[0].Text
 	fname := params.TextDocument.URI.Filename()
 
-	err := checkFile(fname, content)
-	return reply(ctx, nil,
-		s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err),
-	)
+	return s.checkAndReply(ctx, reply, fname, content)
 }
 
 func (s *Server) handleDocumentSaved(
@@ -230,59 +225,67 @@ func (s *Server) handleDocumentSaved(
 	}
 
 	fname := params.TextDocument.URI.Filename()
-	data, err := os.ReadFile(fname)
+	content, err := os.ReadFile(fname)
 	if err != nil {
 		log.Error().Err(err).Msg("reading saved file.")
 		return nil
 	}
 
-	err = checkFile(fname, string(data))
-	return reply(ctx, nil,
-		s.sendErrorDiagnostics(ctx, params.TextDocument.URI, err),
-	)
+	return s.checkAndReply(ctx, reply, fname, string(content))
 }
 
-func (s *Server) sendErrorDiagnostics(ctx context.Context, currentFile lsp.URI, err error) error {
-	if err == nil {
-		log.Debug().Str("file", currentFile.Filename()).
-			Msg("cleaning editor errors")
-
-		// this is required to clear the `problems panel` for the active file
-		// if it had errors before.
-		s.sendDiagnostics(ctx, currentFile, []lsp.Diagnostic{})
-		return nil
+// sendErrorDiagnostics sends diagnostics for each provided file, the ones with
+// no reported error gets an empty list of diagnostics, so the editor can clean
+// up its problems panel for it.
+func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err error) error {
+	errs := errors.L()
+	switch e := err.(type) {
+	case *errors.Error:
+		// an error can wrap a list of errors.
+		errs = e.AsList()
+	case *errors.List:
+		errs = e
+	default:
+		if err != nil {
+			log.Debug().Err(err).Msg("unknown error ignored because it doesn't provide file range")
+		}
 	}
 
-	e, ok := err.(*errors.Error)
-	if !ok {
-		log.Debug().Err(err).Msg("unknown error ignored because it doesn't provide file range")
-		return nil
+	diagsMap := map[string][]lsp.Diagnostic{}
+	for _, filename := range files {
+		diagsMap[filename] = []lsp.Diagnostic{}
 	}
 
-	log.Debug().Str("error", e.Detailed()).Msg("sending diagnostics")
+	for _, err := range errs.Errors() {
+		e, ok := err.(*errors.Error)
+		if !ok || e.FileRange.Empty() {
+			log.Debug().Err(err).Msg("ignoring error without metadata")
+			continue
+		}
 
-	fileRange := lsp.Range{}
-	fileRange.Start.Line = uint32(e.FileRange.Start.Line) - 1
-	fileRange.Start.Character = uint32(e.FileRange.Start.Column) - 1
-	fileRange.End.Line = uint32(e.FileRange.End.Line) - 1
-	fileRange.End.Character = uint32(e.FileRange.End.Column) - 1
+		log.Debug().Str("error", e.Detailed()).Msg("sending diagnostics")
 
-	// TODO(i4k): improve terramate to support multiple errors.
-	diags := []lsp.Diagnostic{
-		{
-			Message:  e.Error(),
+		filename := e.FileRange.Filename
+		fileRange := lsp.Range{}
+		fileRange.Start.Line = uint32(e.FileRange.Start.Line) - 1
+		fileRange.Start.Character = uint32(e.FileRange.Start.Column) - 1
+		fileRange.End.Line = uint32(e.FileRange.End.Line) - 1
+		fileRange.End.Character = uint32(e.FileRange.End.Column) - 1
+
+		diagsMap[filename] = append(diagsMap[filename], lsp.Diagnostic{
+			Message:  e.Message(),
 			Range:    fileRange,
 			Severity: lsp.DiagnosticSeverityError,
 			Source:   "terramate",
-		},
+		})
 	}
 
-	filePath := lsp.URI(uri.File(filepath.ToSlash(e.FileRange.Filename)))
-	s.sendDiagnostics(ctx, filePath, diags)
-
-	if filePath != currentFile {
-		s.sendDiagnostics(ctx, currentFile, []lsp.Diagnostic{})
+	for _, filename := range files {
+		diags := diagsMap[filename]
+		filePath := lsp.URI(uri.File(filepath.ToSlash(filename)))
+		s.sendDiagnostics(ctx, filePath, diags)
 	}
+
 	return nil
 }
 
@@ -312,26 +315,34 @@ func (s *Server) sendDiagnostics(ctx context.Context, uri lsp.URI, diags []lsp.D
 	}
 }
 
-// checkFile checks if the given changed file has any errors.
-// It parses all files in the directory but the provided one is added manually
-// because it can be unsaved.
-func checkFile(fname string, content string) error {
-	dir := filepath.Dir(fname)
-	parser := hcl.NewTerramateParser(dir)
-	err := parser.AddFile(fname, []byte(content))
-	if err != nil {
-		log.Error().Err(err).Send()
-		return err
+func (s *Server) checkAndReply(
+	ctx context.Context,
+	reply jsonrpc2.Replier,
+	fname string,
+	content string,
+) error {
+	files, err := listFiles(fname)
+	files = append(files, fname)
+	sort.Strings(files)
+	if err == nil {
+		err = checkFiles(files, fname, content)
 	}
 
+	return reply(ctx, nil,
+		s.sendErrorDiagnostics(ctx, files, err),
+	)
+}
+
+func listFiles(fromFile string) ([]string, error) {
+	dir := filepath.Dir(fromFile)
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		log.Error().Err(err).Msg("listing terramate files")
-		return err
+		return nil, err
 	}
 
 	log.Trace().Msg("looking for Terramate files")
 
+	files := []string{}
 	for _, dirEntry := range dirEntries {
 		logger := log.With().
 			Str("entryName", dirEntry.Name()).
@@ -346,26 +357,47 @@ func checkFile(fname string, content string) error {
 		if strings.HasSuffix(filename, ".tm") || strings.HasSuffix(filename, ".tm.hcl") {
 			path := filepath.Join(dir, filename)
 
-			if path == fname {
-				// file already added
+			if path == fromFile {
+				// ignore source file
 				continue
 			}
 
-			contents, err := os.ReadFile(path)
-			if err != nil {
-				log.Error().Err(err).Send()
-				return err
-			}
+			files = append(files, path)
+		}
+	}
 
-			err = parser.AddFile(path, contents)
-			if err != nil {
-				log.Error().Err(err).Send()
-				return err
-			}
+	return files, nil
+}
+
+// checkFiles checks if the given provided files have errors but the currentFile
+// is handled separately because it can be unsaved.
+func checkFiles(files []string, currentFile string, currentContent string) error {
+	dir := filepath.Dir(currentFile)
+	parser := hcl.NewTerramateParser(dir)
+
+	for _, fname := range files {
+		var (
+			contents []byte
+			err      error
+		)
+
+		if currentFile == fname {
+			contents = []byte(currentContent)
+		} else {
+			contents, err = os.ReadFile(fname)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		err = parser.AddFile(fname, contents)
+		if err != nil {
+			return err
 		}
 	}
 
 	log.Debug().Msg("about to parse all the files")
-	_, err = parser.Parse()
+	_, err := parser.Parse()
 	return err
 }

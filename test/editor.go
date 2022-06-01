@@ -117,6 +117,27 @@ func (e *Editor) Open(path string) {
 	}
 }
 
+// Change sends a didChange request to the language server.
+func (e *Editor) Change(path, content string) {
+	t := e.t
+	t.Helper()
+	abspath := filepath.Join(e.sandbox.RootDir(), path)
+	var changeResult interface{}
+	_, err := e.call(lsp.MethodTextDocumentDidChange, lsp.DidChangeTextDocumentParams{
+		TextDocument: lsp.VersionedTextDocumentIdentifier{
+			TextDocumentIdentifier: lsp.TextDocumentIdentifier{
+				URI: uri.File(abspath),
+			},
+		},
+		ContentChanges: []lsp.TextDocumentContentChangeEvent{
+			{
+				Text: content,
+			},
+		},
+	}, &changeResult)
+	assert.NoError(t, err, "call %q", lsp.MethodTextDocumentDidChange)
+}
+
 // DefaultInitializeResult is the default server response for the initialization
 // request.
 func DefaultInitializeResult() lsp.InitializeResult {
