@@ -253,9 +253,7 @@ func (s *Server) sendErrorDiagnostics(ctx context.Context, files []string, err e
 
 	diagsMap := map[string][]lsp.Diagnostic{}
 	for _, filename := range files {
-		if _, ok := diagsMap[filename]; !ok {
-			diagsMap[filename] = []lsp.Diagnostic{}
-		}
+		diagsMap[filename] = []lsp.Diagnostic{}
 	}
 
 	for _, err := range errs.Errors() {
