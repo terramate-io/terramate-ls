@@ -41,5 +41,5 @@ At the moment only [vscode](https://code.visualstudio.com/) is officially
 supported by the [vscode-terramate](https://github.com/mineiros-io/vscode-terramate)
 extension.
 
-The only `terramate-ls` specific setup required is making sure it installed in a
+The only `terramate-ls` specific setup required is making sure it is installed in a
 directory in the editor's `PATH` environment variable.
