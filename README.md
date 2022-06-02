@@ -1,4 +1,4 @@
-# terramate-ls
+# Terramate Language Server
 
 The Terramate Language Server provides features to any [LSP](https://microsoft.github.io/language-server-protocol/)-compatible code editor.
 

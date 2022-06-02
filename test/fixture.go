@@ -20,7 +20,7 @@ import (
 	"net"
 	"testing"
 
-	tmlsp "github.com/mineiros-io/terramate-lsp"
+	tmls "github.com/mineiros-io/terramate-ls"
 	"github.com/mineiros-io/terramate/test/sandbox"
 	"go.lsp.dev/jsonrpc2"
 )
@@ -32,10 +32,11 @@ type Fixture struct {
 }
 
 // Setup a new fixture.
-func Setup(t *testing.T) Fixture {
+func Setup(t *testing.T, layout ...string) Fixture {
 	t.Helper()
 
 	s := sandbox.New(t)
+	s.BuildTree(layout)
 
 	// WHY: LSP is bidirectional, the editor calls the server
 	// and the server also calls the editor (not only sending responses),
@@ -45,7 +46,7 @@ func Setup(t *testing.T) Fixture {
 	editorRW, serverRW := net.Pipe()
 
 	serverConn := jsonrpc2Conn(serverRW)
-	server := tmlsp.NewServer(serverConn)
+	server := tmls.NewServer(serverConn)
 	serverConn.Go(context.Background(), server.Handler)
 
 	editorConn := jsonrpc2Conn(editorRW)
@@ -68,7 +69,7 @@ func Setup(t *testing.T) Fixture {
 		select {
 		case req := <-e.Requests:
 			{
-				t.Fatalf("unhandled editor request: %v", req)
+				t.Fatalf("unhandled editor request: %s %s", req.Method(), req.Params())
 			}
 		default:
 		}
