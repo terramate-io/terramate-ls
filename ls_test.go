@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/madlambda/spells/assert"
-	"github.com/mineiros-io/terramate-lsp/test"
+	"github.com/mineiros-io/terramate-ls/test"
 	"github.com/rs/zerolog"
 	lsp "go.lsp.dev/protocol"
 	"go.lsp.dev/uri"

@@ -1,4 +1,4 @@
-module github.com/mineiros-io/terramate-lsp
+module github.com/mineiros-io/terramate-ls
 
 go 1.17
 

@@ -25,7 +25,7 @@ import (
 	"syscall"
 	"time"
 
-	tmlsp "github.com/mineiros-io/terramate-lsp"
+	tmls "github.com/mineiros-io/terramate-ls"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"go.lsp.dev/jsonrpc2"
@@ -55,13 +55,13 @@ func main() {
 	flag.Parse()
 
 	if *versionFlag {
-		fmt.Println(tmlsp.Version())
+		fmt.Println(tmls.Version())
 		os.Exit(0)
 	}
 
 	// TODO(i4k): implement other modes.
 	if *modeFlag != "stdio" {
-		fmt.Println("terramate-lsp only supports stdio mode")
+		fmt.Println("terramate-ls only supports stdio mode")
 		os.Exit(1)
 	}
 
@@ -84,7 +84,7 @@ func runServer(conn io.ReadWriteCloser) {
 		Msg("Starting Terramate Language Server")
 
 	rpcConn := jsonrpc2.NewConn(jsonrpc2.NewStream(conn))
-	server := tmlsp.NewServer(rpcConn)
+	server := tmls.NewServer(rpcConn)
 
 	rpcConn.Go(ctx, server.Handler)
 	<-rpcConn.Done()

@@ -151,7 +151,7 @@ func (s *Server) handleInitialize(
 	log.Info().Msgf("client connected using workspace %q", s.workspace)
 
 	err = s.conn.Notify(ctx, lsp.MethodWindowShowMessage, lsp.ShowMessageParams{
-		Message: "connected to terramate-lsp",
+		Message: "connected to terramate-ls",
 		Type:    lsp.MessageTypeInfo,
 	})
 

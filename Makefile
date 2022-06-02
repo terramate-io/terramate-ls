@@ -53,15 +53,15 @@ coverage/show: coverage
 test: 
 	go test -count=1 -race -timeout=10s ./...
 
-## Build terramate-lsp into bin directory
+## Build terramate-ls into bin directory
 .PHONY: build
 build:
-	go build -o bin/terramate-lsp ./cmd/terramate-lsp
+	go build -o bin/terramate-ls ./cmd/terramate-ls
 
-## Install terramate-lsp on the host
+## Install terramate-ls on the host
 .PHONY: install
 install:
-	go install ./cmd/terramate-lsp
+	go install ./cmd/terramate-ls
 
 ## remove build artifacts
 .PHONY: clean
