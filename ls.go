@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tmlsp
+package tmls
 
 import (
 	"context"
@@ -151,7 +151,7 @@ func (s *Server) handleInitialize(
 	log.Info().Msgf("client connected using workspace %q", s.workspace)
 
 	err = s.conn.Notify(ctx, lsp.MethodWindowShowMessage, lsp.ShowMessageParams{
-		Message: "connected to terramate-lsp",
+		Message: "connected to terramate-ls",
 		Type:    lsp.MessageTypeInfo,
 	})
 

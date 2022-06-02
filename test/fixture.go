@@ -20,7 +20,7 @@ import (
 	"net"
 	"testing"
 
-	tmlsp "github.com/mineiros-io/terramate-lsp"
+	tmls "github.com/mineiros-io/terramate-ls"
 	"github.com/mineiros-io/terramate/test/sandbox"
 	"go.lsp.dev/jsonrpc2"
 )
@@ -46,7 +46,7 @@ func Setup(t *testing.T, layout ...string) Fixture {
 	editorRW, serverRW := net.Pipe()
 
 	serverConn := jsonrpc2Conn(serverRW)
-	server := tmlsp.NewServer(serverConn)
+	server := tmls.NewServer(serverConn)
 	serverConn.Go(context.Background(), server.Handler)
 
 	editorConn := jsonrpc2Conn(editorRW)

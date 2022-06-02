@@ -14,6 +14,6 @@
 
 FROM ubuntu:20.04
 
-COPY terramate-lsp /usr/local/bin/terramate-lsp
+COPY terramate-ls /usr/local/bin/terramate-ls
 
-ENTRYPOINT ["terramate-lsp"]
+ENTRYPOINT ["terramate-ls"]
