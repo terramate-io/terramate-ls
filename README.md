@@ -1,5 +1,9 @@
 # Terramate Language Server
 
+![CI Status](https://github.com/mineiros-io/terramate-ls/actions/workflows/ci.yml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mineiros-io/terramate-ls)](https://goreportcard.com/report/github.com/mineiros-io/terramate-ls)
+[![Join Slack](https://img.shields.io/badge/slack-@mineiros--community-f32752.svg?logo=slack)](https://mineiros.io/slack)
+
 The Terramate Language Server provides features to any [LSP](https://microsoft.github.io/language-server-protocol/)-compatible code editor.
 
 ## Getting Started
