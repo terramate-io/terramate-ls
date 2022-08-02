@@ -392,29 +392,6 @@ stack {
 
 					var gotParams lsp.PublishDiagnosticsParams
 					assert.NoError(t, json.Unmarshal(gotReq.Params(), &gotParams))
-
-					if len(gotParams.Diagnostics) != len(want.Diagnostics) {
-						t.Logf("got  diagnostics %v", gotParams.Diagnostics)
-						t.Logf("want diagnostics %v", want.Diagnostics)
-						if len(gotParams.Diagnostics) > 0 {
-							t.Logf("got  %s:%d:%d",
-								gotParams.URI.Filename(),
-								gotParams.Diagnostics[0].Range.Start.Line, gotParams.Diagnostics[0].Range.End.Line,
-							)
-						} else {
-							t.Logf("got nothing")
-						}
-
-						if len(want.Diagnostics) > 0 {
-							t.Logf("want %s:%d:%d",
-								want.URI.Filename(),
-								want.Diagnostics[0].Range.Start.Line,
-								want.Diagnostics[0].Range.End.Line,
-							)
-						} else {
-							t.Logf("want nothing")
-						}
-					}
 					assert.EqualInts(t,
 						len(gotParams.Diagnostics), len(want.Diagnostics),
 						"number of diagnostics mismatch")
