@@ -16,12 +16,14 @@ package tmls_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/madlambda/spells/assert"
 	"github.com/mineiros-io/terramate-ls/test"
+	stackpkg "github.com/mineiros-io/terramate/stack"
 	"github.com/rs/zerolog"
 	lsp "go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
@@ -37,7 +39,7 @@ func TestDocumentOpen(t *testing.T) {
 
 	stack := f.Sandbox.CreateStack("stack")
 	f.Editor.CheckInitialize()
-	f.Editor.Open("stack/terramate.tm.hcl")
+	f.Editor.Open(fmt.Sprintf("stack/%s", stackpkg.DefaultFilename))
 	r := <-f.Editor.Requests
 	assert.EqualStrings(t, "textDocument/publishDiagnostics", r.Method(),
 		"unexpected notification request")
@@ -45,7 +47,7 @@ func TestDocumentOpen(t *testing.T) {
 	var params lsp.PublishDiagnosticsParams
 	assert.NoError(t, json.Unmarshal(r.Params(), &params), "unmarshaling params")
 	assert.EqualInts(t, 0, len(params.Diagnostics))
-	assert.EqualStrings(t, filepath.Join(stack.Path(), "terramate.tm.hcl"),
+	assert.EqualStrings(t, filepath.Join(stack.Path(), stackpkg.DefaultFilename),
 		params.URI.Filename())
 }
 
@@ -195,7 +197,11 @@ func TestDocumentChange(t *testing.T) {
 			},
 			change: change{
 				file: "terramate.tm",
-				text: "stack {}",
+				text: `
+				stack {
+
+				}
+				`,
 			},
 			want: []WantDiagParams{
 				{
@@ -245,7 +251,7 @@ terramate {
     a = 1
 	config {
 		b = 1
-	}	
+	}
 	invalid {
 
 	}
@@ -278,12 +284,12 @@ stack {
 							Severity: lsp.DiagnosticSeverityError,
 							Range: lsp.Range{
 								Start: lsp.Position{
-									Line:      4,
-									Character: 2,
+									Line:      6,
+									Character: 1,
 								},
 								End: lsp.Position{
-									Line:      4,
-									Character: 3,
+									Line:      6,
+									Character: 10,
 								},
 							},
 						},
@@ -292,12 +298,12 @@ stack {
 							Severity: lsp.DiagnosticSeverityError,
 							Range: lsp.Range{
 								Start: lsp.Position{
-									Line:      6,
-									Character: 1,
+									Line:      4,
+									Character: 2,
 								},
 								End: lsp.Position{
-									Line:      6,
-									Character: 10,
+									Line:      4,
+									Character: 3,
 								},
 							},
 						},
@@ -391,6 +397,28 @@ stack {
 					var gotParams lsp.PublishDiagnosticsParams
 					assert.NoError(t, json.Unmarshal(gotReq.Params(), &gotParams))
 
+					if len(gotParams.Diagnostics) != len(want.Diagnostics) {
+						t.Logf("got  diagnostics %v", gotParams.Diagnostics)
+						t.Logf("want diagnostics %v", want.Diagnostics)
+						if len(gotParams.Diagnostics) > 0 {
+							t.Logf("got  %s:%d:%d",
+								gotParams.URI.Filename(),
+								gotParams.Diagnostics[0].Range.Start.Line, gotParams.Diagnostics[0].Range.End.Line,
+							)
+						} else {
+							t.Logf("got nothing")
+						}
+
+						if len(want.Diagnostics) > 0 {
+							t.Logf("want %s:%d:%d",
+								want.URI.Filename(),
+								want.Diagnostics[0].Range.Start.Line,
+								want.Diagnostics[0].Range.End.Line,
+							)
+						} else {
+							t.Logf("want nothing")
+						}
+					}
 					assert.EqualInts(t,
 						len(gotParams.Diagnostics), len(want.Diagnostics),
 						"number of diagnostics mismatch")

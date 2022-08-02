@@ -373,7 +373,10 @@ func listFiles(fromFile string) ([]string, error) {
 // is handled separately because it can be unsaved.
 func checkFiles(files []string, currentFile string, currentContent string) error {
 	dir := filepath.Dir(currentFile)
-	parser := hcl.NewTerramateParser(dir)
+	parser, err := hcl.NewTerramateParser(dir, dir)
+	if err != nil {
+		return errors.E(err, "failed to create terramate parser")
+	}
 
 	for _, fname := range files {
 		var (
@@ -391,13 +394,13 @@ func checkFiles(files []string, currentFile string, currentContent string) error
 			return err
 		}
 
-		err = parser.AddFile(fname, contents)
+		err = parser.AddFileContent(fname, contents)
 		if err != nil {
 			return err
 		}
 	}
 
 	log.Debug().Msg("about to parse all the files")
-	_, err := parser.Parse()
+	_, err = parser.ParseConfig()
 	return err
 }
