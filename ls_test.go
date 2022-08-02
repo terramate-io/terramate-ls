@@ -197,11 +197,7 @@ func TestDocumentChange(t *testing.T) {
 			},
 			change: change{
 				file: "terramate.tm",
-				text: `
-				stack {
-
-				}
-				`,
+				text: `stack {}`,
 			},
 			want: []WantDiagParams{
 				{
