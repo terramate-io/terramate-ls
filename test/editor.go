@@ -64,13 +64,13 @@ func (e *Editor) call(method string, params, result interface{}) (jsonrpc2.ID, e
 
 // Initialize sends a initialize request to the language server and return its
 // result.
-func (e *Editor) Initialize() lsp.InitializeResult {
+func (e *Editor) Initialize(workspace string) lsp.InitializeResult {
 	e.t.Helper()
 	var got lsp.InitializeResult
 	_, err := e.call(
 		lsp.MethodInitialize,
 		lsp.InitializeParams{
-			RootURI: uri.File(e.sandbox.RootDir()),
+			RootURI: uri.File(workspace),
 		},
 		&got)
 
@@ -80,9 +80,9 @@ func (e *Editor) Initialize() lsp.InitializeResult {
 
 // CheckInitialize sends an initialize request to the language server and checks
 // if the response is the expected default response (See DefaultInitializeResult).
-func (e *Editor) CheckInitialize() {
+func (e *Editor) CheckInitialize(workspace string) {
 	e.t.Helper()
-	got := e.Initialize()
+	got := e.Initialize(workspace)
 	if diff := cmp.Diff(got, DefaultInitializeResult()); diff != "" {
 		e.t.Fatalf("init result differs, got(-) want(+):\n%s", diff)
 	}

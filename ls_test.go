@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/madlambda/spells/assert"
 	"github.com/mineiros-io/terramate-ls/test"
 	stackpkg "github.com/mineiros-io/terramate/stack"
@@ -31,14 +32,14 @@ import (
 
 func TestInitialization(t *testing.T) {
 	f := test.Setup(t)
-	f.Editor.CheckInitialize()
+	f.Editor.CheckInitialize(f.Sandbox.RootDir())
 }
 
 func TestDocumentOpen(t *testing.T) {
 	f := test.Setup(t)
 
 	stack := f.Sandbox.CreateStack("stack")
-	f.Editor.CheckInitialize()
+	f.Editor.CheckInitialize(f.Sandbox.RootDir())
 	f.Editor.Open(fmt.Sprintf("stack/%s", stackpkg.DefaultFilename))
 	r := <-f.Editor.Requests
 	assert.EqualStrings(t, "textDocument/publishDiagnostics", r.Method(),
@@ -68,6 +69,7 @@ func TestDocumentChange(t *testing.T) {
 	type testcase struct {
 		name   string
 		layout []string
+		wrk    string // workspace
 		change change
 		want   []WantDiagParams
 	}
@@ -377,7 +379,11 @@ stack {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := test.Setup(t, tc.layout...)
-			f.Editor.CheckInitialize()
+			workspace := tc.wrk
+			if workspace == "" {
+				workspace = f.Sandbox.RootDir()
+			}
+			f.Editor.CheckInitialize(workspace)
 
 			f.Editor.Change(tc.change.file, tc.change.text)
 			for i := 0; i < len(tc.want); i++ {
@@ -394,7 +400,8 @@ stack {
 					assert.NoError(t, json.Unmarshal(gotReq.Params(), &gotParams))
 					assert.EqualInts(t,
 						len(gotParams.Diagnostics), len(want.Diagnostics),
-						"number of diagnostics mismatch")
+						"number of diagnostics mismatch: %s",
+						cmp.Diff(gotParams, want))
 
 					assert.Partial(t, gotParams, want, "diagnostic mismatch")
 				case <-time.After(10 * time.Millisecond):
