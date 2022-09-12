@@ -376,6 +376,65 @@ stack {
 				},
 			},
 		},
+		{
+			name: "workspace auto-detected and imports",
+			layout: []string{
+				"f:project/stack/stack.tm:stack {}",
+				"f:project/modules/globals.tm:globals {}",
+				`f:project/root.tm:
+					terramate { 
+						config { 
+						
+						}
+					}
+				`,
+			},
+			change: change{
+				file: "project/stack/stack.tm",
+				text: `
+				stack {}
+				import {
+					source = "/modules/globals.tm"
+				}
+				`,
+			},
+			want: []WantDiagParams{
+				{
+					URI:         "project/stack/stack.tm",
+					Diagnostics: []WantDiag{},
+				},
+			},
+		},
+		{
+			name: "workspace set to rootdir and imports",
+			wrk:  "project",
+			layout: []string{
+				"f:project/stack/stack.tm:stack {}",
+				"f:project/modules/globals.tm:globals {}",
+				`f:project/root.tm:
+					terramate { 
+						config { 
+						
+						}
+					}
+				`,
+			},
+			change: change{
+				file: "project/stack/stack.tm",
+				text: `
+				stack {}
+				import {
+					source = "/modules/globals.tm"
+				}
+				`,
+			},
+			want: []WantDiagParams{
+				{
+					URI:         "project/stack/stack.tm",
+					Diagnostics: []WantDiag{},
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := test.Setup(t, tc.layout...)
@@ -400,12 +459,12 @@ stack {
 					assert.NoError(t, json.Unmarshal(gotReq.Params(), &gotParams))
 					assert.EqualInts(t,
 						len(gotParams.Diagnostics), len(want.Diagnostics),
-						"number of diagnostics mismatch: %s",
-						cmp.Diff(gotParams, want))
+						"number of diagnostics mismatch: %s\n%s",
+						cmp.Diff(gotParams, want), string(gotReq.Params()))
 
 					assert.Partial(t, gotParams, want, "diagnostic mismatch")
 				case <-time.After(10 * time.Millisecond):
-					t.Fatal("expected more requests")
+					t.Fatalf("expected more requests: %s", cmp.Diff(nil, tc.want[i]))
 				}
 			}
 		})
