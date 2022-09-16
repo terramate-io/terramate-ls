@@ -152,7 +152,7 @@ func TestDocumentChange(t *testing.T) {
 		{
 			name: "workspace with issues and file with issues",
 			layout: []string{
-				"f:bug.tm:bug",
+				"f:bug.tm:attr = 1",
 			},
 			change: change{
 				file: "terramate.tm",
@@ -163,12 +163,12 @@ func TestDocumentChange(t *testing.T) {
 					URI: "bug.tm",
 					Diagnostics: []WantDiag{
 						{
-							Message:  "HCL syntax error",
+							Message:  "schema error",
 							Severity: lsp.DiagnosticSeverityError,
 							Range: lsp.Range{
 								Start: lsp.Position{},
 								End: lsp.Position{
-									Character: 3,
+									Character: 4,
 								},
 							},
 						},
@@ -458,7 +458,7 @@ stack {
 					var gotParams lsp.PublishDiagnosticsParams
 					assert.NoError(t, json.Unmarshal(gotReq.Params(), &gotParams))
 					assert.EqualInts(t,
-						len(gotParams.Diagnostics), len(want.Diagnostics),
+						len(want.Diagnostics), len(gotParams.Diagnostics),
 						"number of diagnostics mismatch: %s\n%s",
 						cmp.Diff(gotParams, want), string(gotReq.Params()))
 

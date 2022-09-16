@@ -373,8 +373,10 @@ func listFiles(fromFile string) ([]string, error) {
 // checkFiles checks if the given provided files have errors but the currentFile
 // is handled separately because it can be unsaved.
 func (s *Server) checkFiles(files []string, currentFile string, currentContent string) error {
+	errs := errors.L()
 	dir := filepath.Dir(currentFile)
-	_, rootdir, found, _ := config.TryLoadRootConfig(dir)
+	_, rootdir, found, err := config.TryLoadRootConfig(dir)
+	errs.Append(err)
 	if !found {
 		rootdir = s.workspace
 	}
