@@ -18,7 +18,7 @@ then
       exit 1
 fi
 
-go mod tidy
+go mod tidy -compat=1.17
 changes="$(go_mod_changes)"
 
 if [[ ! -z "${changes}" ]]
