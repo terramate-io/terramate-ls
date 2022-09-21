@@ -25,7 +25,6 @@ import (
 	"github.com/madlambda/spells/assert"
 	"github.com/mineiros-io/terramate-ls/test"
 	stackpkg "github.com/mineiros-io/terramate/stack"
-	"github.com/rs/zerolog"
 	lsp "go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
@@ -469,8 +468,4 @@ stack {
 			}
 		})
 	}
-}
-
-func init() {
-	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
