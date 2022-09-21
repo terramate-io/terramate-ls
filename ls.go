@@ -379,7 +379,7 @@ func (s *Server) checkFiles(files []string, currentFile string, currentContent s
 		rootdir = s.workspace
 	}
 
-	log.Trace().Msgf("using project root: %s", rootdir)
+	log.Trace().Msgf("using project root: %s (found: %t)", rootdir, found)
 
 	parser, err := hcl.NewTerramateParser(rootdir, dir)
 	if err != nil {
