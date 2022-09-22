@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/google/go-cmp v0.5.6
 	github.com/madlambda/spells v0.4.0
-	github.com/mineiros-io/terramate i4k-increase-logging 
+	github.com/mineiros-io/terramate v0.1.31-0.20220922123058-709f37bac76b
 	github.com/rs/zerolog v1.26.1
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0
