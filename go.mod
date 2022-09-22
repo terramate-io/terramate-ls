@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/google/go-cmp v0.5.6
 	github.com/madlambda/spells v0.4.0
-	github.com/mineiros-io/terramate v0.1.31-0.20220921152709-25387daa699a
+	github.com/mineiros-io/terramate v0.1.31-0.20220922114433-b3c6d9829291
 	github.com/rs/zerolog v1.26.1
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0
