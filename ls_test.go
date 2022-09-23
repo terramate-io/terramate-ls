@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/madlambda/spells/assert"
 	"github.com/mineiros-io/terramate-ls/test"
 	stackpkg "github.com/mineiros-io/terramate/stack"
@@ -31,14 +32,14 @@ import (
 
 func TestInitialization(t *testing.T) {
 	f := test.Setup(t)
-	f.Editor.CheckInitialize()
+	f.Editor.CheckInitialize(f.Sandbox.RootDir())
 }
 
 func TestDocumentOpen(t *testing.T) {
 	f := test.Setup(t)
 
 	stack := f.Sandbox.CreateStack("stack")
-	f.Editor.CheckInitialize()
+	f.Editor.CheckInitialize(f.Sandbox.RootDir())
 	f.Editor.Open(fmt.Sprintf("stack/%s", stackpkg.DefaultFilename))
 	r := <-f.Editor.Requests
 	assert.EqualStrings(t, "textDocument/publishDiagnostics", r.Method(),
@@ -68,6 +69,7 @@ func TestDocumentChange(t *testing.T) {
 	type testcase struct {
 		name   string
 		layout []string
+		wrk    string // workspace
 		change change
 		want   []WantDiagParams
 	}
@@ -150,7 +152,7 @@ func TestDocumentChange(t *testing.T) {
 		{
 			name: "workspace with issues and file with issues",
 			layout: []string{
-				"f:bug.tm:bug",
+				"f:bug.tm:attr = 1",
 			},
 			change: change{
 				file: "terramate.tm",
@@ -161,12 +163,12 @@ func TestDocumentChange(t *testing.T) {
 					URI: "bug.tm",
 					Diagnostics: []WantDiag{
 						{
-							Message:  "HCL syntax error",
+							Message:  "schema error",
 							Severity: lsp.DiagnosticSeverityError,
 							Range: lsp.Range{
 								Start: lsp.Position{},
 								End: lsp.Position{
-									Character: 3,
+									Character: 4,
 								},
 							},
 						},
@@ -374,10 +376,73 @@ stack {
 				},
 			},
 		},
+		{
+			name: "workspace auto-detected and imports",
+			layout: []string{
+				"f:project/stack/stack.tm:stack {}",
+				"f:project/modules/globals.tm:globals {}",
+				`f:project/root.tm:
+					terramate { 
+						config { 
+						
+						}
+					}
+				`,
+			},
+			change: change{
+				file: "project/stack/stack.tm",
+				text: `
+				stack {}
+				import {
+					source = "/modules/globals.tm"
+				}
+				`,
+			},
+			want: []WantDiagParams{
+				{
+					URI:         "project/stack/stack.tm",
+					Diagnostics: []WantDiag{},
+				},
+			},
+		},
+		{
+			name: "workspace set to rootdir and imports",
+			wrk:  "project",
+			layout: []string{
+				"f:project/stack/stack.tm:stack {}",
+				"f:project/modules/globals.tm:globals {}",
+				`f:project/root.tm:
+					terramate { 
+						config { 
+						
+						}
+					}
+				`,
+			},
+			change: change{
+				file: "project/stack/stack.tm",
+				text: `
+				stack {}
+				import {
+					source = "/modules/globals.tm"
+				}
+				`,
+			},
+			want: []WantDiagParams{
+				{
+					URI:         "project/stack/stack.tm",
+					Diagnostics: []WantDiag{},
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := test.Setup(t, tc.layout...)
-			f.Editor.CheckInitialize()
+			workspace := tc.wrk
+			if workspace == "" {
+				workspace = f.Sandbox.RootDir()
+			}
+			f.Editor.CheckInitialize(workspace)
 
 			f.Editor.Change(tc.change.file, tc.change.text)
 			for i := 0; i < len(tc.want); i++ {
@@ -393,12 +458,13 @@ stack {
 					var gotParams lsp.PublishDiagnosticsParams
 					assert.NoError(t, json.Unmarshal(gotReq.Params(), &gotParams))
 					assert.EqualInts(t,
-						len(gotParams.Diagnostics), len(want.Diagnostics),
-						"number of diagnostics mismatch")
+						len(want.Diagnostics), len(gotParams.Diagnostics),
+						"number of diagnostics mismatch: %s\n%s",
+						cmp.Diff(gotParams, want), string(gotReq.Params()))
 
 					assert.Partial(t, gotParams, want, "diagnostic mismatch")
 				case <-time.After(10 * time.Millisecond):
-					t.Fatal("expected more requests")
+					t.Fatalf("expected more requests: %s", cmp.Diff(nil, tc.want[i]))
 				}
 			}
 		})

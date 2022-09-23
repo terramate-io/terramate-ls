@@ -23,6 +23,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mineiros-io/terramate/config"
 	"github.com/mineiros-io/terramate/errors"
 	"github.com/mineiros-io/terramate/hcl"
 	"github.com/rs/zerolog"
@@ -325,7 +326,7 @@ func (s *Server) checkAndReply(
 	files = append(files, fname)
 	sort.Strings(files)
 	if err == nil {
-		err = checkFiles(files, fname, content)
+		err = s.checkFiles(files, fname, content)
 	}
 
 	return reply(ctx, nil,
@@ -371,9 +372,16 @@ func listFiles(fromFile string) ([]string, error) {
 
 // checkFiles checks if the given provided files have errors but the currentFile
 // is handled separately because it can be unsaved.
-func checkFiles(files []string, currentFile string, currentContent string) error {
+func (s *Server) checkFiles(files []string, currentFile string, currentContent string) error {
 	dir := filepath.Dir(currentFile)
-	parser, err := hcl.NewTerramateParser(dir, dir)
+	_, rootdir, found, _ := config.TryLoadRootConfig(dir)
+	if !found {
+		rootdir = s.workspace
+	}
+
+	log.Trace().Msgf("using project root: %s (found: %t)", rootdir, found)
+
+	parser, err := hcl.NewTerramateParser(rootdir, dir)
 	if err != nil {
 		return errors.E(err, "failed to create terramate parser")
 	}

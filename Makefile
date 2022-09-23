@@ -36,7 +36,7 @@ mod/check:
 ## tidy up go modules
 .PHONY: mod
 mod:
-	go mod tidy
+	go mod tidy -compat=1.17
 
 ## generates coverage report
 .PHONY: coverage
