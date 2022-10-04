@@ -287,7 +287,7 @@ stack {
 								},
 								End: lsp.Position{
 									Line:      6,
-									Character: 10,
+									Character: 8,
 								},
 							},
 						},
