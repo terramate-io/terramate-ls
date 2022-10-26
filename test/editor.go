@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package test provides helpers for testing the Terramate language server.
 package test
 
 import (

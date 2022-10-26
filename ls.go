@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package tmls implements the language server for Terramate.
 package tmls
 
 import (
