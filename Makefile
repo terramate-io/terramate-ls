@@ -16,7 +16,7 @@ fmt:
 ## lint code
 .PHONY: lint
 lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.0 run ./...
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.49.0 run ./...
 
 ## add license to code
 .PHONY: license
@@ -36,7 +36,7 @@ mod/check:
 ## tidy up go modules
 .PHONY: mod
 mod:
-	go mod tidy -compat=1.17
+	go mod tidy
 
 ## generates coverage report
 .PHONY: coverage

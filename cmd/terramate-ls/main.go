@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Terramate-ls is a language server.
+// For details on how to use it just run:
+//
+//	terramate-ls --help
 package main
 
 import (
