@@ -25,10 +25,15 @@ import (
 	"github.com/madlambda/spells/assert"
 	"github.com/mineiros-io/terramate-ls/test"
 	stackpkg "github.com/mineiros-io/terramate/stack"
+	"github.com/mineiros-io/terramate/test/sandbox"
 	"github.com/rs/zerolog"
 	lsp "go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
+
+func TestTmpSandbox(t *testing.T) {
+	sandbox.New(t)
+}
 
 func TestInitialization(t *testing.T) {
 	f := test.Setup(t)
