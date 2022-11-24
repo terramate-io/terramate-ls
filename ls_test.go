@@ -31,6 +31,10 @@ import (
 	"go.lsp.dev/uri"
 )
 
+func TestTmpDir(t *testing.T) {
+	t.TempDir()
+}
+
 func TestTmpSandbox(t *testing.T) {
 	sandbox.New(t)
 }
