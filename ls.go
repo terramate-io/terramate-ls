@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package tmls implements a Terramate Language Server (LSP).
 package tmls
 
 import (
@@ -374,7 +375,7 @@ func listFiles(fromFile string) ([]string, error) {
 // is handled separately because it can be unsaved.
 func (s *Server) checkFiles(files []string, currentFile string, currentContent string) error {
 	dir := filepath.Dir(currentFile)
-	_, rootdir, found, _ := config.TryLoadRootConfig(dir)
+	_, rootdir, found, _ := config.TryLoadConfig(dir)
 	if !found {
 		rootdir = s.workspace
 	}
