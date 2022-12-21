@@ -380,6 +380,10 @@ func (s *Server) checkFiles(files []string, currentFile string, currentContent s
 		rootdir = s.workspace
 	}
 
+	if !strings.HasPrefix(dir, rootdir) {
+		rootdir = dir
+	}
+
 	log.Trace().Msgf("using project root: %s (found: %t)", rootdir, found)
 
 	parser, err := hcl.NewTerramateParser(rootdir, dir)
