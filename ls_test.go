@@ -23,9 +23,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/madlambda/spells/assert"
-	"github.com/mineiros-io/terramate-ls/test"
-	stackpkg "github.com/mineiros-io/terramate/stack"
 	"github.com/rs/zerolog"
+	"github.com/terramate-io/terramate-ls/test"
+	stackpkg "github.com/terramate-io/terramate/stack"
 	lsp "go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )

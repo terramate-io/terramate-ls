@@ -1,11 +1,11 @@
-module github.com/mineiros-io/terramate-ls
+module github.com/terramate-io/terramate-ls
 
 go 1.18
 
 require (
 	github.com/google/go-cmp v0.5.6
 	github.com/madlambda/spells v0.4.2
-	github.com/mineiros-io/terramate v0.2.6
+	github.com/terramate-io/terramate v0.2.6
 	github.com/rs/zerolog v1.28.0
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0

@@ -29,9 +29,9 @@ import (
 	"syscall"
 	"time"
 
-	tmls "github.com/mineiros-io/terramate-ls"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	tmls "github.com/terramate-io/terramate-ls"
 	"go.lsp.dev/jsonrpc2"
 )
 

@@ -20,8 +20,8 @@ import (
 	"net"
 	"testing"
 
-	tmls "github.com/mineiros-io/terramate-ls"
-	"github.com/mineiros-io/terramate/test/sandbox"
+	tmls "github.com/terramate-io/terramate-ls"
+	"github.com/terramate-io/terramate/test/sandbox"
 	"go.lsp.dev/jsonrpc2"
 )
 
