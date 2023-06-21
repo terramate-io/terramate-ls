@@ -2,7 +2,7 @@
 
 ![CI Status](https://github.com/mineiros-io/terramate-ls/actions/workflows/ci.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mineiros-io/terramate-ls)](https://goreportcard.com/report/github.com/mineiros-io/terramate-ls)
-[![Join Slack](https://img.shields.io/badge/slack-@mineiros--community-f32752.svg?logo=slack)](https://mineiros.io/slack)
+[![Join Discord](https://img.shields.io/discord/1088753599951151154?label=Discord&logo=discord&logoColor=white)](https://terramate.io/discord)
 
 The Terramate Language Server provides features to any [LSP](https://microsoft.github.io/language-server-protocol/)-compatible code editor.
 
@@ -31,8 +31,8 @@ To install `terramate-ls` using a released binary, find the
 [appropriate package](https://github.com/mineiros-io/terramate-ls/releases) for
 your system and download it.
 
-After downloading the language server, unzip the package. The 
-language server runs as a single binary named `terramate-ls`. 
+After downloading the language server, unzip the package. The
+language server runs as a single binary named `terramate-ls`.
 Any other files in the package can be safely removed and the language server
 will still work.
 
