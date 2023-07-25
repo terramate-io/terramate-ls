@@ -1,5 +1,12 @@
 # Terramate Language Server
 
+_**NOTE: This functionality has been moved to the [main Terramate
+repository](https://github.com/terramate-io/terramate), any problems or feature
+request should be directed there. This repository is kept purely as an archive,
+and no further development will occur here.**_
+
+---
+
 ![CI Status](https://github.com/mineiros-io/terramate-ls/actions/workflows/ci.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mineiros-io/terramate-ls)](https://goreportcard.com/report/github.com/mineiros-io/terramate-ls)
 [![Join Discord](https://img.shields.io/discord/1088753599951151154?label=Discord&logo=discord&logoColor=white)](https://terramate.io/discord)
