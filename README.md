@@ -1,3 +1,7 @@
+# NOTICE
+
+_This project was merged into [Terramate](https://github.com/terramate-io/terramate) main repository._
+
 # Terramate Language Server
 
 ![CI Status](https://github.com/mineiros-io/terramate-ls/actions/workflows/ci.yml/badge.svg)
